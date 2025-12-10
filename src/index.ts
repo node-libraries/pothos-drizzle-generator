@@ -11,7 +11,7 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 // import RelayPlugin from "@pothos/plugin-relay";
 import PothosDrizzleGeneratorPlugin from "./pothos-drizzle-generator-plugin";
 import { generate } from "graphql-auto-query";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createInputOperator } from "./pothos-drizzle-generator-plugin/libs/utils";
 
 const db = drizzle({
@@ -32,12 +32,29 @@ const builder = new SchemaBuilder<PothosTypes>({
   },
 });
 
-const getSymbol = (o: Object, name: string) => {
-  const symbol = Object.getOwnPropertySymbols(o).find(
-    (v) => v.toString() === name
-  );
-  return symbol && Object.getOwnPropertyDescriptor(o, symbol)?.value;
-};
+// db.query.users
+//   .findMany({
+//     with: {
+//       posts: {
+//         columns: {},
+//         extras: { count: () => sql`count(*)` },
+//       },
+//     },
+//     orderBy: { id: "asc", email: "desc" },
+//   })
+//   .then((v) => console.dir(v, { depth: null }));
+
+// db.query.users
+//   .findFirst({
+//     // with: {
+//     //   posts: {
+//     //     columns: {},
+//     //     extras: { count: () => sql`count(*)` },
+//     //   },
+//     // },
+//     orderBy: { id: "asc" },
+//   })
+//   .then((v) => console.dir(v, { depth: null }));
 
 // for (const { table, name, relations } of Object.values(
 //   drizzleSchema._.relations
@@ -61,9 +78,18 @@ const getSymbol = (o: Object, name: string) => {
 //   fields: (t) => ({
 //     id: t.exposeID("id"),
 //     email: t.expose("email", { type: "String" }),
-//     age: t.exposeInt("age"),
 //     name: t.exposeString("name"),
 //     posts: t.relation("posts"),
+//     count: t.field({
+//       type: "Int",
+//       select: {},
+//       resolve: () => 0,
+//       extensions: {
+//         pothosDrizzleSelect:{
+
+//         }
+//       },
+//     }),
 //   }),
 // });
 

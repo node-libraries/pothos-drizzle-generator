@@ -27,3 +27,24 @@ export const createInputOperator = (
   });
   return inputType;
 };
+
+type AggregationQueryType = {
+  aggregation?: boolean;
+  columns?: object;
+  with: Record<string, AggregationQueryType>;
+};
+
+export const convertAggregationQuery = (query: AggregationQueryType) => {
+  const { aggregation, columns, ...q } = query;
+  const newQuery = aggregation ? { ...q, columns: {} } : query;
+  const newWith: Record<string, AggregationQueryType> = query.with
+    ? Object.fromEntries(
+        Object.entries(query.with).map(([key, value]) => [
+          key,
+          convertAggregationQuery(value),
+        ])
+      )
+    : query.with;
+
+  return { ...newQuery, with: newWith };
+};
