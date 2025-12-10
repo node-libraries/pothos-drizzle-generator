@@ -9,6 +9,7 @@
     "drizzle:seed": "tsx tools/seed"
   },
   "dependencies": {
+    "@graphql-tools/utils": "10.11.0",
     "@hono/graphql-server": "0.7.0",
     "@hono/node-server": "1.19.6",
     "@pothos/core": "4.10.0",

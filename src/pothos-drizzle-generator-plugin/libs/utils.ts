@@ -1,4 +1,19 @@
 import * as p from "drizzle-orm";
+import { collectFields } from "@graphql-tools/utils";
+
+export const getQueryFields = (info: any) => {
+  return Object.fromEntries(
+    Array.from(
+      collectFields(
+        info.schema,
+        info.fragments,
+        info.variableValues,
+        info.rootType,
+        info.fieldNodes[0].selectionSet!
+      ).fields.keys()
+    ).map((v) => [v, true])
+  );
+};
 
 const OperatorMap = {
   eq: p.eq,

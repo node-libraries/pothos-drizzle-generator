@@ -51,20 +51,16 @@ const builder = new SchemaBuilder<PothosTypes>({
 
 // db.query.users
 //   .findMany({
-//     with: {
-//       posts: {
-//         columns: {},
-//         extras: { count: () => sql`count(*)` },
-//       },
-//     },
-//     where:{
-//     AND:[],
-//     OR:[],
-//     NOT:{}
-//     },
+//     columns: { id: true },
+//     // with: {
+//     //   posts: {
+//     //     columns: {},
+//     //     extras: { count: () => sql`count(*)` },
+//     //   },
+//     // },
 //     orderBy: { id: "asc", email: "desc" },
 //   })
-//   .then((v) => console.dir(v, { depth: null }));
+// .then((v) => console.dir(v, { depth: null }));
 
 // db.query.users
 //   .findFirst({
@@ -169,7 +165,7 @@ app.get("/", (c) => {
         document: generate(schema, 1),
       },
       endpointUrl: "/",
-      introspectionInterval: 5000,
+      introspectionInterval: 10000,
     })
   );
 });

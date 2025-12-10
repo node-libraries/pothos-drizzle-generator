@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@graphql-tools/utils':
+        specifier: 10.11.0
+        version: 10.11.0(graphql@16.12.0)
       '@hono/graphql-server':
         specifier: 0.7.0
         version: 0.7.0(hono@4.10.7)
@@ -29,9 +32,6 @@ importers:
       dotenv:
         specifier: 17.2.3
         version: 17.2.3
-      drizzle-graphql:
-        specifier: 0.8.5
-        version: 0.8.5(drizzle-orm@1.0.0-beta.2-86f844e(@types/mssql@9.1.8)(@types/pg@8.15.6)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
       drizzle-orm:
         specifier: 1.0.0-beta.2-86f844e
         version: 1.0.0-beta.2-86f844e(@types/mssql@9.1.8)(@types/pg@8.15.6)(mssql@11.0.1)(pg@8.16.3)
@@ -655,12 +655,6 @@ packages:
     resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
 
-  drizzle-graphql@0.8.5:
-    resolution: {integrity: sha512-MAqBwmj/kSZWIUQdYCsYtoZWxxVRcXWkhsqt0b6fY1XC171WHBK/jZiVWepO04tDsdaDuTvzlufDHJqNl3VVWQ==}
-    peerDependencies:
-      drizzle-orm: '>=0.30.9'
-      graphql: '>=16.3.0'
-
   drizzle-kit@1.0.0-beta.2-86f844e:
     resolution: {integrity: sha512-wRllWKoXyazP8D8jNOKBsjC33ZmZr85jwhxf9GTjNekPPXvsUVmflkRiht/853Gzf6WFxCzeCaGDm7qyUegyTA==}
     hasBin: true
@@ -807,12 +801,6 @@ packages:
   graphql-auto-query@1.0.4:
     resolution: {integrity: sha512-FxvGWaFwfmNExZJZosKAJpUCABddqhNNsNDeGlsb5/4Yn3RFFj80+xichr01hWwDlwz0gDV4z5POMHyKAB9acA==}
     hasBin: true
-
-  graphql-parse-resolve-info@4.14.1:
-    resolution: {integrity: sha512-WKHukfEuZamP1ZONR84b8iT+4sJgEhtXMDArm1jpXEsU2vTb5EgkCZ4Obfl+v09oNTKXm0CJjPfBUZ5jcJ2Ykg==}
-    engines: {node: '>=8.6'}
-    peerDependencies:
-      graphql: '>=0.9 <0.14 || ^14.0.2 || ^15.4.0 || ^16.3.0'
 
   graphql-scalars@1.25.0:
     resolution: {integrity: sha512-b0xyXZeRFkne4Eq7NAnL400gStGqG/Sx9VqX0A05nHyEbv57UJnWKsjNnrpVqv5e/8N1MUxkt0wwcRXbiyKcFg==}
@@ -1594,14 +1582,6 @@ snapshots:
 
   dotenv@17.2.3: {}
 
-  drizzle-graphql@0.8.5(drizzle-orm@1.0.0-beta.2-86f844e(@types/mssql@9.1.8)(@types/pg@8.15.6)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0):
-    dependencies:
-      drizzle-orm: 1.0.0-beta.2-86f844e(@types/mssql@9.1.8)(@types/pg@8.15.6)(mssql@11.0.1)(pg@8.16.3)
-      graphql: 16.12.0
-      graphql-parse-resolve-info: 4.14.1(graphql@16.12.0)
-    transitivePeerDependencies:
-      - supports-color
-
   drizzle-kit@1.0.0-beta.2-86f844e:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
@@ -1710,14 +1690,6 @@ snapshots:
       '@types/node': 22.19.1
       graphql: 16.12.0
       minimist: 1.2.8
-
-  graphql-parse-resolve-info@4.14.1(graphql@16.12.0):
-    dependencies:
-      debug: 4.4.3
-      graphql: 16.12.0
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - supports-color
 
   graphql-scalars@1.25.0(graphql@16.12.0):
     dependencies:
