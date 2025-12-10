@@ -28,7 +28,7 @@ export const posts = pgTable("Post", {
   published: boolean().notNull().default(false),
   title: text().notNull().default("New Post"),
   content: text().notNull().default(""),
-  authorId: uuid().references(() => users.id),
+  authorId: uuid().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   publishedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -48,10 +48,10 @@ export const postsToCategories = pgTable(
   {
     postId: uuid()
       .notNull()
-      .references(() => posts.id),
+      .references(() => posts.id, { onDelete: "cascade" }),
     categoryId: uuid()
       .notNull()
-      .references(() => categories.id),
+      .references(() => categories.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.postId, t.categoryId] })]
 );

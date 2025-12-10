@@ -1,13 +1,22 @@
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
-import { isTable, sql, type RelationsRecord } from "drizzle-orm";
+import {
+  isTable,
+  sql,
+  type RelationsRecord,
+  type SchemaEntry,
+} from "drizzle-orm";
 import type {
   PgArray,
   PgColumn,
   PgTable,
   getTableConfig,
 } from "drizzle-orm/pg-core";
-import { convertAggregationQuery, createInputOperator } from "./libs/utils";
+import {
+  convertAggregationQuery,
+  createInputOperator,
+  createWhereQuery,
+} from "./libs/utils";
 import {
   BigIntResolver,
   ByteResolver,
@@ -26,9 +35,11 @@ export class PothosDrizzleGeneratorPlugin<
     {};
   inputWhere: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
   inputOrderBy: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
+  inputCreate: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
+  inputUpdate: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
   tables: Record<
     string,
-    readonly [ReturnType<typeof getTableConfig>, RelationsRecord]
+    readonly [SchemaEntry, ReturnType<typeof getTableConfig>, RelationsRecord]
   > = {};
 
   constructor(
@@ -49,13 +60,13 @@ export class PothosDrizzleGeneratorPlugin<
       .filter((t) => isTable(t.table))
       .map(
         ({ name, table, relations }) =>
-          [name, [getConfig(table as PgTable), relations]] as const
+          [name, [table, getConfig(table as PgTable), relations]] as const
       );
 
     this.tables = Object.fromEntries(tables);
-    tables.forEach(([name, [table, relations]]) => {
-      builder.drizzleObject(name as never, {
-        name: table.name,
+    tables.forEach(([modelName, [table, tableInfo, relations]]) => {
+      builder.drizzleObject(modelName as never, {
+        name: tableInfo.name,
         fields: (t) => {
           const relayList = Object.entries(relations).map(
             ([relayName, relay]) => {
@@ -120,7 +131,7 @@ export class PothosDrizzleGeneratorPlugin<
           return Object.fromEntries([
             // ...relayCount,
             ...relayList,
-            ...table.columns.map((c) => {
+            ...tableInfo.columns.map((c) => {
               return [
                 c.name,
                 t.expose(c.name, {
@@ -133,13 +144,14 @@ export class PothosDrizzleGeneratorPlugin<
         },
       });
 
-      const inputWhere = this.getInputWhere(name);
-      const inputOrderBy = this.getInputOrderBy(name);
-
+      const inputWhere = this.getInputWhere(modelName);
+      const inputOrderBy = this.getInputOrderBy(modelName);
+      const inputCreate = this.getInputCreate(modelName);
+      const inputUpdate = this.getInputUpdate(modelName);
       builder.queryType({
         fields: (t) => ({
-          [`findMany${table.name}`]: t.drizzleField({
-            type: [name],
+          [`findMany${tableInfo.name}`]: t.drizzleField({
+            type: [modelName],
             nullable: false,
             args: {
               offset: t.arg({ type: "Int" }),
@@ -148,7 +160,7 @@ export class PothosDrizzleGeneratorPlugin<
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any) => {
-              return (client as any).query[name].findMany(
+              return (client as any).query[modelName].findMany(
                 convertAggregationQuery(query(args))
               );
             },
@@ -157,15 +169,15 @@ export class PothosDrizzleGeneratorPlugin<
       });
       builder.queryType({
         fields: (t) => ({
-          [`findFirst${table.name}`]: t.drizzleField({
-            type: name,
+          [`findFirst${tableInfo.name}`]: t.drizzleField({
+            type: modelName,
             args: {
               offset: t.arg({ type: "Int" }),
               where: t.arg({ type: inputWhere }),
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any) => {
-              return (client as any).query[name].findFirst(
+              return (client as any).query[modelName].findFirst(
                 convertAggregationQuery(query({ args }))
               );
             },
@@ -174,7 +186,7 @@ export class PothosDrizzleGeneratorPlugin<
       });
       builder.queryType({
         fields: (t) => ({
-          [`count${table.name}`]: t.field({
+          [`count${tableInfo.name}`]: t.field({
             type: "Int",
             nullable: false,
             args: {
@@ -182,7 +194,7 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_query: any, _parent: any, args: any) => {
-              return (client as any).query[name]
+              return (client as any).query[modelName]
                 .findFirst({
                   columns: {},
                   extras: { _count: () => sql`count(*)` },
@@ -193,19 +205,133 @@ export class PothosDrizzleGeneratorPlugin<
           } as never),
         }),
       });
+      builder.mutationType({
+        fields: (t) => ({
+          [`createOne${tableInfo.name}`]: t.drizzleField({
+            type: modelName,
+            nullable: false,
+            args: { input: t.arg({ type: inputCreate, required: true }) },
+            resolve: async (_query: any, _parent: any, args: any) => {
+              return (client as any)
+                .insert(table)
+                .values(args.input)
+                .returning()
+                .then((v: any) => v[0]);
+            },
+          } as never),
+        }),
+      });
+      builder.mutationType({
+        fields: (t) => ({
+          [`createMany${tableInfo.name}`]: t.drizzleField({
+            type: [modelName],
+            nullable: false,
+            args: { input: t.arg({ type: [inputCreate], required: true }) },
+            resolve: async (_query: any, _parent: any, args: any) => {
+              return (client as any)
+                .insert(table)
+                .values(args.input)
+                .returning();
+            },
+          } as never),
+        }),
+      });
+      builder.mutationType({
+        fields: (t) => ({
+          [`update${tableInfo.name}`]: t.drizzleField({
+            type: [modelName],
+            nullable: false,
+            args: {
+              input: t.arg({ type: inputUpdate, required: true }),
+              where: t.arg({ type: inputWhere }),
+            },
+            resolve: async (_query: any, _parent: any, args: any) => {
+              return (client as any)
+                .update(table)
+                .set(args.input)
+                .where(
+                  args.where ? createWhereQuery(table, args.where) : undefined
+                )
+                .returning();
+            },
+          } as never),
+        }),
+      });
+      builder.mutationType({
+        fields: (t) => ({
+          [`delete${tableInfo.name}`]: t.field({
+            type: [modelName],
+            nullable: false,
+            args: {
+              where: t.arg({ type: inputWhere }),
+            },
+            resolve: async (_query: any, _parent: any, args: any) => {
+              return (client as any)
+                .delete(table)
+                .where(
+                  args.where ? createWhereQuery(table, args.where) : undefined
+                )
+                .returning();
+            },
+          } as never),
+        }),
+      });
     });
+  }
+  getInputCreate(tableName: string) {
+    const i = this.inputCreate[tableName];
+    if (i) return i;
+    const [, tableInfo] = this.tables[tableName];
+    const inputArgs = this.builder.inputType(`${tableName}InputCreate`, {
+      fields: (t: any) => {
+        return Object.fromEntries(
+          tableInfo.columns.map((c: PgColumn) => {
+            return [
+              c.name,
+              t.field({
+                type: this.getDataType(c),
+                required: c.notNull && !c.default,
+              }),
+            ];
+          })
+        );
+      },
+    } as never);
+    this.inputCreate[tableName] = inputArgs;
+    return inputArgs;
+  }
+  getInputUpdate(tableName: string) {
+    const i = this.inputUpdate[tableName];
+    if (i) return i;
+    const [, tableInfo] = this.tables[tableName];
+    const inputUpdate = this.builder.inputType(`${tableName}InputUpdate`, {
+      fields: (t: any) => {
+        return Object.fromEntries(
+          tableInfo.columns.map((c: PgColumn) => {
+            return [
+              c.name,
+              t.field({
+                type: this.getDataType(c),
+              }),
+            ];
+          })
+        );
+      },
+    } as never);
+    this.inputUpdate[tableName] = inputUpdate;
+    return inputUpdate;
   }
   getInputWhere(tableName: string) {
     const i = this.inputWhere[tableName];
     if (i) return i;
-    const [table] = this.tables[tableName];
-    const inputWhere = this.builder.inputType(`${tableName}Input`, {
+    const [, tableInfo] = this.tables[tableName];
+    const inputWhere = this.builder.inputType(`${tableName}InputWhere`, {
       fields: (t: any) => {
         return Object.fromEntries([
           ["AND", t.field({ type: [inputWhere] })],
           ["OR", t.field({ type: [inputWhere] })],
           ["NOT", t.field({ type: inputWhere })],
-          ...table.columns.map((c: PgColumn) => {
+          ...tableInfo.columns.map((c: PgColumn) => {
             return [
               c.name,
               t.field({
@@ -222,11 +348,11 @@ export class PothosDrizzleGeneratorPlugin<
   getInputOrderBy(tableName: string) {
     const i = this.inputOrderBy[tableName];
     if (i) return i;
-    const [table] = this.tables[tableName];
+    const [, tableInfo] = this.tables[tableName];
     const inputOrderBy = this.builder.inputType(`${tableName}OrderBy`, {
       fields: (t: any) => {
         return Object.fromEntries(
-          table.columns.map((c: PgColumn) => {
+          tableInfo.columns.map((c: PgColumn) => {
             return [
               c.name,
               t.field({

@@ -11,7 +11,7 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 // import RelayPlugin from "@pothos/plugin-relay";
 import PothosDrizzleGeneratorPlugin from "./pothos-drizzle-generator-plugin";
 import { generate } from "graphql-auto-query";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createInputOperator } from "./pothos-drizzle-generator-plugin/libs/utils";
 
 const db = drizzle({
@@ -31,6 +31,23 @@ const builder = new SchemaBuilder<PothosTypes>({
     getTableConfig,
   },
 });
+// db.delete(relations.users.table)
+//   .where(eq(relations.users.table.email, "residual_carroll@hotmail.fr"))
+//   .returning()
+//   .then((v) => console.dir(v, { depth: null }));
+
+// db.insert(relations.users.table)
+//   .values([
+//     { email: "test@test" + Math.random() },
+//     { email: "test@test" + Math.random() },
+//   ])
+//   .returning()
+//   .then((v) => console.dir(v, { depth: null }));
+
+// db.update(relations.users.table)
+//   .set({ email: "test@test" + Math.random() })
+//   .where(and(eq(relations.users.table.id, "")))
+//   .returning()
 
 // db.query.users
 //   .findMany({
@@ -39,6 +56,11 @@ const builder = new SchemaBuilder<PothosTypes>({
 //         columns: {},
 //         extras: { count: () => sql`count(*)` },
 //       },
+//     },
+//     where:{
+//     AND:[],
+//     OR:[],
+//     NOT:{}
 //     },
 //     orderBy: { id: "asc", email: "desc" },
 //   })

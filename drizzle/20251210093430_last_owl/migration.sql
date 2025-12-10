@@ -39,6 +39,6 @@ CREATE TABLE "User" (
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_User_id_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id");--> statement-breakpoint
+ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_User_id_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "PostToCategory" ADD CONSTRAINT "PostToCategory_postId_Post_id_fkey" FOREIGN KEY ("postId") REFERENCES "Post"("id");--> statement-breakpoint
 ALTER TABLE "PostToCategory" ADD CONSTRAINT "PostToCategory_categoryId_Category_id_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id");

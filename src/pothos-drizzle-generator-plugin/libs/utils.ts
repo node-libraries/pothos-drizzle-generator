@@ -1,3 +1,67 @@
+import * as p from "drizzle-orm";
+
+const OperatorMap = {
+  eq: p.eq,
+  ne: p.ne,
+  gt: p.gt,
+  gte: p.gte,
+  lt: p.lt,
+  lte: p.lte,
+  like: p.like,
+  notLike: p.notLike,
+  ilike: p.ilike,
+  notIlike: p.notIlike,
+  isNull: p.isNull,
+  isNotNull: p.isNotNull,
+  in: p.inArray,
+  notIn: p.notInArray,
+  arrayContained: p.arrayContained,
+  arrayOverlaps: p.arrayOverlaps,
+  arrayContains: p.arrayContains,
+};
+
+type OperatorType = Record<string, Record<keyof typeof OperatorMap, unknown>>;
+type OperatorTree =
+  | Record<"AND" | "OR", OperatorType[]>
+  | Record<"NOT", OperatorType>
+  | OperatorType;
+
+export const createWhereQuery = (
+  table: p.SchemaEntry,
+  tree: OperatorTree
+): p.SQL => {
+  const result: p.SQL[] = Object.entries(tree)
+    .map(([key, value]) => {
+      switch (key) {
+        case "AND":
+          return p.and(
+            ...value.map((v: OperatorTree) => createWhereQuery(table, v))
+          );
+        case "OR":
+          return p.or(
+            ...value.map((v: OperatorTree) => createWhereQuery(table, v))
+          );
+        case "NOT":
+          p.not(createWhereQuery(table, value));
+      }
+      const result = Object.entries(value).map(([k, v]) => {
+        const m = OperatorMap[k as keyof typeof OperatorMap];
+        return (m as any)(p.getColumns(table)[key] as any, v as any) as p.SQL;
+      });
+      if (result.length === 1) {
+        return result[0] as p.SQL;
+      }
+      return p.and(...result);
+    })
+    .flatMap((v) => (v ? [v] : []));
+  if (result.length === 1) {
+    return result[0] as p.SQL;
+  }
+  const r = p.and(...result);
+  if (!r) throw "Error convert where query";
+  return r;
+};
+
 export const createInputOperator = (
   builder: PothosSchemaTypes.SchemaBuilder<any>,
   type: String | [String]

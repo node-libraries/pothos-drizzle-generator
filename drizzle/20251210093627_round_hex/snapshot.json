@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "38c43329-6f55-42ab-a0f8-a3a65d1c25d2",
+  "id": "7527e3f6-c4b1-47b9-90f8-ea91352cdac1",
   "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
+    "4d098acd-7de7-41d9-88f9-3397df2b9bc2"
   ],
   "ddl": [
     {
@@ -368,7 +368,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "Post_authorId_User_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -385,7 +385,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "PostToCategory_postId_Post_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -402,7 +402,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "PostToCategory_categoryId_Category_id_fkey",
       "entityType": "fks",
       "schema": "public",
