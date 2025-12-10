@@ -1,5 +1,5 @@
-import * as p from "drizzle-orm";
 import { collectFields } from "@graphql-tools/utils";
+import * as p from "drizzle-orm";
 
 export const getQueryFields = (info: any) => {
   return Object.fromEntries(
@@ -79,7 +79,7 @@ export const createWhereQuery = (
 
 export const createInputOperator = (
   builder: PothosSchemaTypes.SchemaBuilder<any>,
-  type: String | [String]
+  type: string | [string]
 ) => {
   const typeName = Array.isArray(type) ? `Array${type[0]}` : type;
   const name = `${typeName}InputOperator`;

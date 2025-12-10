@@ -1,23 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
-import type { DrizzleClient } from "@pothos/plugin-drizzle";
 import {
   isTable,
   sql,
   type RelationsRecord,
   type SchemaEntry,
 } from "drizzle-orm";
-import type {
-  PgArray,
-  PgColumn,
-  PgTable,
-  getTableConfig,
-} from "drizzle-orm/pg-core";
-import {
-  convertAggregationQuery,
-  createInputOperator,
-  createWhereQuery,
-  getQueryFields,
-} from "./libs/utils";
 import {
   BigIntResolver,
   ByteResolver,
@@ -26,6 +14,18 @@ import {
   HexadecimalResolver,
   JSONResolver,
 } from "graphql-scalars";
+import {
+  convertAggregationQuery,
+  createInputOperator,
+  createWhereQuery,
+} from "./libs/utils";
+import type { DrizzleClient } from "@pothos/plugin-drizzle";
+import type {
+  PgArray,
+  PgColumn,
+  PgTable,
+  getTableConfig,
+} from "drizzle-orm/pg-core";
 
 export class PothosDrizzleGeneratorPlugin<
   Types extends SchemaTypes,
@@ -34,10 +34,10 @@ export class PothosDrizzleGeneratorPlugin<
   enums: Record<string, PothosSchemaTypes.EnumRef<any, any>> = {};
   inputOperators: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> =
     {};
-  inputWhere: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
-  inputOrderBy: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
-  inputCreate: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
-  inputUpdate: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> = {};
+  inputType: Record<
+    string,
+    Record<string, PothosSchemaTypes.InputObjectRef<any, any>>
+  > = {};
   tables: Record<
     string,
     readonly [SchemaEntry, ReturnType<typeof getTableConfig>, RelationsRecord]
@@ -49,55 +49,56 @@ export class PothosDrizzleGeneratorPlugin<
   ) {
     super(buildCache, name);
   }
-  getInputCreate(tableName: string) {
-    const i = this.inputCreate[tableName];
-    if (i) return i;
+  getInputType(
+    tableName: string,
+    type: string,
+    options: PothosSchemaTypes.InputObjectTypeOptions<any, any>
+  ) {
+    if (!this.inputType[tableName]) this.inputType[tableName] = {};
+    if (this.inputType[tableName][type]) return this.inputType[tableName][type];
     const [, tableInfo] = this.tables[tableName];
-    const inputArgs = this.builder.inputType(`${tableName}InputCreate`, {
-      fields: (t: any) => {
-        return Object.fromEntries(
-          tableInfo.columns.map((c: PgColumn) => {
-            return [
-              c.name,
-              t.field({
-                type: this.getDataType(c),
-                required: c.notNull && !c.default,
-              }),
-            ];
-          })
-        );
-      },
-    } as never);
-    this.inputCreate[tableName] = inputArgs;
-    return inputArgs;
+    const input = this.builder.inputType(
+      `${tableInfo.name}Input${type}`,
+      options
+    );
+    this.inputType[tableName][type] = input;
+    return input;
+  }
+
+  getInputCreate(tableName: string) {
+    const [, tableInfo] = this.tables[tableName];
+    return this.getInputType(tableName, "Create", {
+      fields: (t) =>
+        Object.fromEntries(
+          tableInfo.columns.map((c: PgColumn) => [
+            c.name,
+            t.field({
+              type: this.getDataType(c),
+              required: c.notNull && !c.default,
+            }),
+          ])
+        ),
+    });
   }
   getInputUpdate(tableName: string) {
-    const i = this.inputUpdate[tableName];
-    if (i) return i;
     const [, tableInfo] = this.tables[tableName];
-    const inputUpdate = this.builder.inputType(`${tableName}InputUpdate`, {
-      fields: (t: any) => {
+    return this.getInputType(tableName, "Update", {
+      fields: (t) => {
         return Object.fromEntries(
-          tableInfo.columns.map((c: PgColumn) => {
-            return [
-              c.name,
-              t.field({
-                type: this.getDataType(c),
-              }),
-            ];
-          })
+          tableInfo.columns.map((c: PgColumn) => [
+            c.name,
+            t.field({
+              type: this.getDataType(c),
+            }),
+          ])
         );
       },
-    } as never);
-    this.inputUpdate[tableName] = inputUpdate;
-    return inputUpdate;
+    });
   }
   getInputWhere(tableName: string) {
-    const i = this.inputWhere[tableName];
-    if (i) return i;
     const [, tableInfo] = this.tables[tableName];
-    const inputWhere = this.builder.inputType(`${tableName}InputWhere`, {
-      fields: (t: any) => {
+    const inputWhere = this.getInputType(tableName, "Where", {
+      fields: (t) => {
         return Object.fromEntries([
           ["AND", t.field({ type: [inputWhere] })],
           ["OR", t.field({ type: [inputWhere] })],
@@ -112,16 +113,13 @@ export class PothosDrizzleGeneratorPlugin<
           }),
         ]);
       },
-    } as never);
-    this.inputWhere[tableName] = inputWhere;
+    });
     return inputWhere;
   }
   getInputOrderBy(tableName: string) {
-    const i = this.inputOrderBy[tableName];
-    if (i) return i;
     const [, tableInfo] = this.tables[tableName];
-    const inputOrderBy = this.builder.inputType(`${tableName}OrderBy`, {
-      fields: (t: any) => {
+    const inputWhere = this.getInputType(tableName, "OrderBy", {
+      fields: (t) => {
         return Object.fromEntries(
           tableInfo.columns.map((c: PgColumn) => {
             return [
@@ -133,10 +131,10 @@ export class PothosDrizzleGeneratorPlugin<
           })
         );
       },
-    } as never);
-    this.inputOrderBy[tableName] = inputOrderBy;
-    return inputOrderBy;
+    });
+    return inputWhere;
   }
+
   getInputOperator(type: string | [string]) {
     const typeName = Array.isArray(type) ? `Array${type[0]}` : type;
     const input =

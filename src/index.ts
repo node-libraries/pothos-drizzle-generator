@@ -1,18 +1,16 @@
 import "dotenv/config";
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { explorer } from "apollo-explorer/html";
-import { relations } from "./db/relations";
-import { drizzle } from "drizzle-orm/node-postgres";
-import SchemaBuilder from "@pothos/core";
 import { graphqlServer } from "@hono/graphql-server";
+import { serve } from "@hono/node-server";
+import SchemaBuilder from "@pothos/core";
 import DrizzlePlugin from "@pothos/plugin-drizzle";
+import { explorer } from "apollo-explorer/html";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
+import { generate } from "graphql-auto-query";
+import { Hono } from "hono";
+import { relations } from "./db/relations";
 // import RelayPlugin from "@pothos/plugin-relay";
 import PothosDrizzleGeneratorPlugin from "./pothos-drizzle-generator-plugin";
-import { generate } from "graphql-auto-query";
-import { and, eq, sql } from "drizzle-orm";
-import { createInputOperator } from "./pothos-drizzle-generator-plugin/libs/utils";
 
 const db = drizzle({
   connection: process.env.DATABASE_URL!,
