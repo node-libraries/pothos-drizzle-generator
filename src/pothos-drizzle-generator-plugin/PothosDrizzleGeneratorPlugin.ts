@@ -40,7 +40,11 @@ export class PothosDrizzleGeneratorPlugin<
   > = {};
   tables: Record<
     string,
-    readonly [SchemaEntry, ReturnType<typeof getTableConfig>, RelationsRecord]
+    {
+      table: SchemaEntry;
+      tableInfo: ReturnType<typeof getTableConfig>;
+      relations: RelationsRecord;
+    }
   > = {};
 
   constructor(
@@ -56,7 +60,7 @@ export class PothosDrizzleGeneratorPlugin<
   ) {
     if (!this.inputType[tableName]) this.inputType[tableName] = {};
     if (this.inputType[tableName][type]) return this.inputType[tableName][type];
-    const [, tableInfo] = this.tables[tableName];
+    const { tableInfo } = this.tables[tableName];
     const input = this.builder.inputType(
       `${tableInfo.name}Input${type}`,
       options
@@ -66,7 +70,7 @@ export class PothosDrizzleGeneratorPlugin<
   }
 
   getInputCreate(tableName: string) {
-    const [, tableInfo] = this.tables[tableName];
+    const { tableInfo } = this.tables[tableName];
     return this.getInputType(tableName, "Create", {
       fields: (t) =>
         Object.fromEntries(
@@ -81,7 +85,7 @@ export class PothosDrizzleGeneratorPlugin<
     });
   }
   getInputUpdate(tableName: string) {
-    const [, tableInfo] = this.tables[tableName];
+    const { tableInfo } = this.tables[tableName];
     return this.getInputType(tableName, "Update", {
       fields: (t) => {
         return Object.fromEntries(
@@ -96,7 +100,7 @@ export class PothosDrizzleGeneratorPlugin<
     });
   }
   getInputWhere(tableName: string) {
-    const [, tableInfo] = this.tables[tableName];
+    const { tableInfo } = this.tables[tableName];
     const inputWhere = this.getInputType(tableName, "Where", {
       fields: (t) => {
         return Object.fromEntries([
@@ -117,7 +121,7 @@ export class PothosDrizzleGeneratorPlugin<
     return inputWhere;
   }
   getInputOrderBy(tableName: string) {
-    const [, tableInfo] = this.tables[tableName];
+    const { tableInfo } = this.tables[tableName];
     const inputWhere = this.getInputType(tableName, "OrderBy", {
       fields: (t) => {
         return Object.fromEntries(
@@ -143,13 +147,13 @@ export class PothosDrizzleGeneratorPlugin<
     return input;
   }
   createInputType() {
-    const builder = this.builder;
-    builder.addScalarType("BigInt" as never, BigIntResolver, {});
-    builder.addScalarType("Bytes" as never, ByteResolver, {});
-    builder.addScalarType("Date" as never, DateResolver, {});
-    builder.addScalarType("DateTime" as never, DateTimeResolver, {});
-    builder.addScalarType("Json" as never, JSONResolver, {});
-    builder.addScalarType("Decimal" as never, HexadecimalResolver, {});
+    const builder: PothosSchemaTypes.SchemaBuilder<any> = this.builder;
+    builder.addScalarType("BigInt", BigIntResolver, {});
+    builder.addScalarType("Bytes", ByteResolver, {});
+    builder.addScalarType("Date", DateResolver, {});
+    builder.addScalarType("DateTime", DateTimeResolver, {});
+    builder.addScalarType("Json", JSONResolver, {});
+    builder.addScalarType("Decimal", HexadecimalResolver, {});
 
     this.enums["OrderBy"] = builder.enumType("OrderBy", {
       values: {
@@ -164,7 +168,7 @@ export class PothosDrizzleGeneratorPlugin<
     const types = c.dataType.split(" ");
 
     switch (types[1] ?? types[0]) {
-      case "enum":
+      case "enum": {
         const sqlType = c.getSQLType();
         const e = this.enums[sqlType];
         if (!e) {
@@ -173,6 +177,7 @@ export class PothosDrizzleGeneratorPlugin<
           });
         }
         return isArray ? [sqlType] : sqlType;
+      }
       case "json":
         return isArray ? ["Json"] : "Json";
       case "date":
@@ -209,11 +214,14 @@ export class PothosDrizzleGeneratorPlugin<
       .filter((t) => isTable(t.table))
       .map(
         ({ name, table, relations }) =>
-          [name, [table, getConfig(table as PgTable), relations]] as const
+          [
+            name,
+            { table, tableInfo: getConfig(table as PgTable), relations },
+          ] as const
       );
 
     this.tables = Object.fromEntries(tables);
-    tables.forEach(([modelName, [table, tableInfo, relations]]) => {
+    tables.forEach(([modelName, { table, tableInfo, relations }]) => {
       const objectRef = builder.objectRef(modelName);
       objectRef.implement({
         fields: (t) =>
@@ -290,7 +298,10 @@ export class PothosDrizzleGeneratorPlugin<
           //           }),
           //         },
           //         resolve: (parent: any) => {
-          //           return parent[relayName][0]["_count"];
+          //           const target = parent[relayName];
+          //           return Array.isArray(target)
+          //             ? target[0]["_count"]
+          //             : target["_count"];
           //         },
           //       }),
           //     ];
@@ -327,13 +338,7 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
               orderBy: t.arg({ type: inputOrderBy }),
             },
-            resolve: async (
-              query: any,
-              _parent: any,
-              args: any,
-              ctx: any,
-              info: any
-            ) => {
+            resolve: async (query: any, _parent: any, args: any) => {
               return (client as any).query[modelName].findMany(
                 convertAggregationQuery(query(args))
               );

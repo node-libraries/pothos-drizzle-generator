@@ -1,14 +1,15 @@
 import { collectFields } from "@graphql-tools/utils";
 import * as p from "drizzle-orm";
+import { GraphQLResolveInfo } from "graphql";
 
-export const getQueryFields = (info: any) => {
+export const getQueryFields = (info: GraphQLResolveInfo) => {
   return Object.fromEntries(
     Array.from(
       collectFields(
         info.schema,
         info.fragments,
         info.variableValues,
-        info.rootType,
+        {} as never,
         info.fieldNodes[0].selectionSet!
       ).fields.keys()
     ).map((v) => [v, true])
@@ -61,7 +62,10 @@ export const createWhereQuery = (
       }
       const result = Object.entries(value).map(([k, v]) => {
         const m = OperatorMap[k as keyof typeof OperatorMap];
-        return (m as any)(p.getColumns(table)[key] as any, v as any) as p.SQL;
+        return (m as (column: p.SQL | p.Column, value: unknown) => p.SQL)(
+          p.getColumns(table)[key],
+          v
+        ) as p.SQL;
       });
       if (result.length === 1) {
         return result[0] as p.SQL;
@@ -78,6 +82,7 @@ export const createWhereQuery = (
 };
 
 export const createInputOperator = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   builder: PothosSchemaTypes.SchemaBuilder<any>,
   type: string | [string]
 ) => {
@@ -85,16 +90,16 @@ export const createInputOperator = (
   const name = `${typeName}InputOperator`;
   const inputType = builder.inputType(name, {
     fields: (t) => ({
-      eq: t.field({ type: type as never }),
-      ne: t.field({ type: type as never }),
-      gt: t.field({ type: type as never }),
-      gte: t.field({ type: type as never }),
-      lt: t.field({ type: type as never }),
-      lte: t.field({ type: type as never }),
-      like: t.field({ type: type as never }),
-      notLike: t.field({ type: type as never }),
-      ilike: t.field({ type: type as never }),
-      notIlike: t.field({ type: type as never }),
+      eq: t.field({ type }),
+      ne: t.field({ type }),
+      gt: t.field({ type }),
+      gte: t.field({ type }),
+      lt: t.field({ type }),
+      lte: t.field({ type }),
+      like: t.field({ type }),
+      notLike: t.field({ type }),
+      ilike: t.field({ type }),
+      notIlike: t.field({ type }),
       isNull: t.boolean(),
       isNotNull: t.boolean(),
       in: t.field({ type: [type] as never }),
@@ -114,6 +119,7 @@ type AggregationQueryType = {
 };
 
 export const convertAggregationQuery = (query: AggregationQueryType) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { aggregation, columns, ...q } = query;
   const newQuery = aggregation ? { ...q, columns: {} } : query;
   const newWith: Record<string, AggregationQueryType> = query.with
