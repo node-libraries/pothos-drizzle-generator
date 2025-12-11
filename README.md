@@ -4,6 +4,8 @@ A Pothos plugin that automatically generates GraphQL schemas based on Drizzle sc
 
 Currently under development, so the test program will run.
 
+![](./document/image.png)
+
 # How to run the program
 
 - Initialization
