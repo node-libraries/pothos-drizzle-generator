@@ -44,8 +44,9 @@ type OperatorTree =
 
 export const createWhereQuery = (
   table: p.SchemaEntry,
-  tree: OperatorTree
+  tree?: OperatorTree
 ): p.SQL => {
+  if (!tree) return p.and()!;
   const result: p.SQL[] = Object.entries(tree)
     .map(([key, value]) => {
       switch (key) {

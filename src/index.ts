@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import SchemaBuilder from "@pothos/core";
 import DrizzlePlugin from "@pothos/plugin-drizzle";
 import { explorer } from "apollo-explorer/html";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { generate } from "graphql-auto-query";

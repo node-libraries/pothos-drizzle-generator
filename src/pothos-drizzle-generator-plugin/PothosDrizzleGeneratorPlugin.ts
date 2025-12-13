@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
 import {
+  and,
+  eq,
   isTable,
   sql,
   type RelationsRecord,
@@ -270,45 +272,52 @@ export class PothosDrizzleGeneratorPlugin<
               ];
             }
           );
-          // const relayCount = Object.entries(relations).map(
-          //   ([relayName, relay]) => {
-          //     const inputWhere = this.getInputWhere(relay.targetTableName);
-          //     return [
-          //       `${relayName}Count`,
-          //       t.field({
-          //         type: "Int",
-          //         nullable: false,
-          //         args: {
-          //           offset: t.arg({ type: "Int" }),
-          //           limit: t.arg({ type: "Int" }),
-          //           where: t.arg({ type: inputWhere }),
-          //         },
-          //         extensions: {
-          //           pothosDrizzleSelect: (args: any) => ({
-          //             with: {
-          //               [relayName]: {
-          //                 aggregation: true,
-          //                 columns: {},
-          //                 extras: {
-          //                   _count: () => sql`count(*)`,
-          //                 },
-          //                 ...args,
-          //               },
-          //             },
-          //           }),
-          //         },
-          //         resolve: (parent: any) => {
-          //           const target = parent[relayName];
-          //           return Array.isArray(target)
-          //             ? target[0]["_count"]
-          //             : target["_count"];
-          //         },
-          //       }),
-          //     ];
-          //   }
-          // );
+          const relayCount = Object.entries(relations).map(
+            ([relayName, relay]) => {
+              const inputWhere = this.getInputWhere(relay.targetTableName);
+              return [
+                `${relayName}Count`,
+                t.field({
+                  type: "Int",
+                  nullable: false,
+                  args: {
+                    where: t.arg({ type: inputWhere }),
+                  },
+                  extensions: {
+                    pothosDrizzleSelect: (args: any) => ({
+                      columns: {},
+                      extras: {
+                        [`${relayName}Count`]: (table: SchemaEntry) => {
+                          return (client as any)
+                            .select({ _count: sql`count(*)` })
+                            .from(relay.targetTable)
+                            .where(
+                              and(
+                                createWhereQuery(relay.targetTable, args.where),
+                                ...relay.targetColumns.map((v, index) =>
+                                  eq(
+                                    v,
+                                    table[
+                                      relay.sourceColumns[index]
+                                        .name as keyof typeof table
+                                    ]
+                                  )
+                                )
+                              )
+                            );
+                        },
+                      },
+                    }),
+                  },
+                  resolve: (parent: any) => {
+                    return parent[`${relayName}Count`];
+                  },
+                }),
+              ];
+            }
+          );
           return Object.fromEntries([
-            // ...relayCount,
+            ...relayCount,
             ...relayList,
             ...tableInfo.columns.map((c) => {
               return [
