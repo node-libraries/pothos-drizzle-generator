@@ -2,7 +2,7 @@
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
 import { sql } from "drizzle-orm";
 import { PothosDrizzleGenerator } from "./generator";
-import { convertAggregationQuery, createWhereQuery } from "./libs/utils";
+import { createWhereQuery } from "./libs/utils";
 
 export class PothosDrizzleGeneratorPlugin<
   Types extends SchemaTypes,
@@ -23,14 +23,15 @@ export class PothosDrizzleGeneratorPlugin<
 
     const builder = this.builder;
     const tables = generator.getTables();
-    for (const [modelName, { table, tableInfo, relations }] of Object.entries(
-      tables
-    )) {
+    for (const [
+      modelName,
+      { table, tableInfo, relations, columns, executable },
+    ] of Object.entries(tables)) {
       const objectRef = builder.objectRef(modelName);
       objectRef.implement({
         fields: (t) =>
           Object.fromEntries(
-            tableInfo.columns.map((c) => {
+            columns.map((c) => {
               return [
                 c.name,
                 t.expose(
@@ -44,54 +45,80 @@ export class PothosDrizzleGeneratorPlugin<
             })
           ),
       });
-
+      const filterRelations = Object.entries(relations).filter(
+        ([, relay]) => tables[relay.targetTableName]
+      );
       builder.drizzleObject(modelName as never, {
         name: tableInfo.name,
         fields: (t) => {
-          const relayList = Object.entries(relations).map(
-            ([relayName, relay]) => {
-              const inputWhere = generator.getInputWhere(relay.targetTableName);
-              const inputOrderBy = generator.getInputOrderBy(
-                relay.targetTableName
-              );
-              return [
-                relayName,
-                t.relation(relayName, {
-                  columns: { id: true },
+          const relayList = filterRelations.map(([relayName, relay]) => {
+            const { executable } = tables[relay.targetTableName];
+            const inputWhere = generator.getInputWhere(relay.targetTableName);
+            const inputOrderBy = generator.getInputOrderBy(
+              relay.targetTableName
+            );
+            return [
+              relayName,
+              t.relation(relayName, {
+                columns: { id: true },
+                args: {
+                  offset: t.arg({ type: "Int" }),
+                  limit: t.arg({ type: "Int" }),
+                  where: t.arg({ type: inputWhere }),
+                  orderBy: t.arg({ type: inputOrderBy }),
+                },
+                query: (
                   args: {
-                    offset: t.arg({ type: "Int" }),
-                    limit: t.arg({ type: "Int" }),
-                    where: t.arg({ type: inputWhere }),
-                    orderBy: t.arg({ type: inputOrderBy }),
-                  },
-                  query: (args: {
                     where?: object;
                     offset?: number;
                     limit?: number;
                     orderBy?: object;
-                  }) => {
-                    return args;
                   },
-                } as never),
-              ];
-            }
-          );
-          const relayCount = Object.entries(relations).map(
-            ([relayName, relay]) => {
-              const inputWhere = generator.getInputWhere(relay.targetTableName);
-              return [
-                `${relayName}Count`,
-                t.relatedCount(relayName, {
-                  args: { where: t.arg({ type: inputWhere }) },
-                  where: (args: any) => args.where,
-                } as never),
-              ];
-            }
-          );
+                  ctx: any
+                ) => {
+                  if (
+                    executable?.({
+                      modelName: relay.targetTableName,
+                      ctx,
+                      operation:
+                        relay.relationType === "one" ? "findFirst" : "findMany",
+                    }) === false
+                  ) {
+                    throw new Error("No permission");
+                  }
+
+                  return args;
+                },
+              } as never),
+            ];
+          });
+          const relayCount = filterRelations.map(([relayName, relay]) => {
+            const { executable } = tables[relay.targetTableName];
+            const inputWhere = generator.getInputWhere(relay.targetTableName);
+            return [
+              `${relayName}Count`,
+              t.relatedCount(relayName, {
+                args: { where: t.arg({ type: inputWhere }) },
+                where: (args: any, ctx: any) => {
+                  if (
+                    executable?.({
+                      modelName: relay.targetTableName,
+                      ctx,
+                      operation: "count",
+                    }) === false
+                  ) {
+                    throw new Error("No permission");
+                  }
+
+                  return args.where;
+                },
+              } as never),
+            ];
+          });
           return Object.fromEntries([
             ...relayCount,
             ...relayList,
-            ...tableInfo.columns.map((c) => {
+            ...columns.map((c) => {
               return [
                 c.name,
                 t.expose(c.name, {
@@ -120,9 +147,18 @@ export class PothosDrizzleGeneratorPlugin<
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "findMany",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any).query[
                 modelName
-              ].findMany(convertAggregationQuery(query(args)));
+              ].findMany(query(args));
             },
           } as never),
         }),
@@ -137,9 +173,18 @@ export class PothosDrizzleGeneratorPlugin<
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "findFirst",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any).query[
                 modelName
-              ].findFirst(convertAggregationQuery(query({ args })));
+              ].findFirst(query({ args }));
             },
           } as never),
         }),
@@ -154,6 +199,15 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "count",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any).query[modelName]
                 .findFirst({
                   columns: {},
@@ -172,6 +226,15 @@ export class PothosDrizzleGeneratorPlugin<
             nullable: false,
             args: { input: t.arg({ type: inputCreate, required: true }) },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "createOne",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any)
                 .insert(table)
                 .values(args.input)
@@ -188,6 +251,15 @@ export class PothosDrizzleGeneratorPlugin<
             nullable: false,
             args: { input: t.arg({ type: [inputCreate], required: true }) },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "createMany",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any)
                 .insert(table)
                 .values(args.input)
@@ -206,6 +278,15 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "update",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any)
                 .update(table)
                 .set(args.input)
@@ -226,6 +307,15 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_parent: any, args: any, ctx: any) => {
+              if (
+                executable?.({
+                  modelName,
+                  ctx,
+                  operation: "delete",
+                }) === false
+              ) {
+                throw new Error("No permission");
+              }
               return (generator.getClient(ctx) as any)
                 .delete(table)
                 .where(

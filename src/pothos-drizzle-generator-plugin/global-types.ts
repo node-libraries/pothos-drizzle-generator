@@ -26,39 +26,42 @@ declare global {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       pothosDrizzleGenerator?: {
         use?:
-          | { include: (keyof Relations<Types>)[] }
-          | { exclude: (keyof Relations<Types>)[] };
+          | { include: (keyof Relations<Types>)[]; exclude?: undefined }
+          | { exclude: (keyof Relations<Types>)[]; include?: undefined };
         models?: {
           [U in Tables<Types>]?: {
             fields:
-              | { include: Columns<Types, U>[] }
+              | { include: Columns<Types, U>[]; exclude?: undefined }
               | {
                   exclude: Columns<Types, U>[];
+                  include?: undefined;
                 };
             operations?: {
               include?: (typeof OperationAll)[number][];
               exclude?: (typeof OperationAll)[number][];
             };
-            checkExecutable?: (params: {
+            executable?: (params: {
               ctx: Types["Context"];
-              name: U;
-              operation: typeof OperationBasic;
+              modelName: U;
+              operation: (typeof OperationBasic)[number];
             }) => boolean;
             limit?: (params: {
               ctx: Types["Context"];
-              name: U;
-              operation: typeof OperationBasic;
-            }) => number;
+              modelName: U;
+              operation: (typeof OperationBasic)[number];
+            }) => number | undefined;
             orderBy?: (params: {
               ctx: Types["Context"];
-              name: U;
-              operation: typeof OperationBasic;
-            }) => { [P in Columns<Types, U>]?: "asc" | "desc" };
+              modelName: U;
+              operation: (typeof OperationBasic)[number];
+            }) => { [P in Columns<Types, U>]?: "asc" | "desc" } | undefined;
             where?: (params: {
               ctx: Types["Context"];
-              name: U;
-              operation: typeof OperationBasic;
-            }) => RelationsFilter<Relations<Types>[U], Relations<Types>>;
+              modelName: U;
+              operation: (typeof OperationBasic)[number];
+            }) =>
+              | RelationsFilter<Relations<Types>[U], Relations<Types>>
+              | undefined;
           };
         };
       };

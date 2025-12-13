@@ -9,18 +9,7 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 import { generate } from "graphql-auto-query";
 import { Hono } from "hono";
 import { relations } from "./db/relations";
-import { users } from "./db/schema";
 import PothosDrizzleGeneratorPlugin from "./pothos-drizzle-generator-plugin";
-import type {
-  DBQueryConfigColumns,
-  ExtractTablesFromSchema,
-  ExtractTablesWithRelationsParts,
-  GetTableViewFieldSelection,
-  RelationsBuilderConfig,
-  Schema,
-  TableRelationalConfig,
-  TableTypeConfig,
-} from "drizzle-orm";
 
 const db = drizzle({
   connection: process.env.DATABASE_URL!,
@@ -40,40 +29,20 @@ const builder = new SchemaBuilder<PothosTypes>({
     getTableConfig,
   },
   pothosDrizzleGenerator: {
-    use: { include: ["categories"] },
+    use: { exclude: ["postsToCategories"] },
     models: {
-      posts: {
-        fields: { exclude: ["authorId"] },
-        orderBy: ({ ctx, name, operation }) => ({ id: "desc" }),
-        where: ({ ctx, name, operation }) => ({ authorId: { eq: "" } }),
-      },
+      // posts: {
+      //   fields: { exclude: ["authorId"] },
+      //   executable: ({ ctx, modelName, operation }) => false,
+      //   limit: () => 5,
+      //   orderBy: ({ ctx, modelName, operation }) => ({ id: "desc" }),
+      //   where: ({ ctx, modelName, operation }) => ({ authorId: { eq: "" } }),
+      // },
     },
   },
 });
 
-db.query.users.findMany({ where: { AND: [] } });
-
 const schema = builder.toSchema({ sortSchema: false });
-
-const OperationFind = ["findFirst", "findMany"] as const;
-const OperationCreate = ["createOne", "createMany"] as const;
-const OperationUpdate = ["updateOne", "updateMany"] as const;
-const OperationDelete = ["deleteOne", "deleteMany"] as const;
-const OperationQuery = [...OperationFind, "count"] as const;
-const OperationMutation = [
-  ...OperationCreate,
-  ...OperationUpdate,
-  ...OperationDelete,
-] as const;
-const OperationAll = [
-  "find",
-  "update",
-  "delete",
-  "query",
-  "mutation",
-  ...OperationQuery,
-  ...OperationMutation,
-] as const;
 
 const app = new Hono();
 // Apollo Explorer
