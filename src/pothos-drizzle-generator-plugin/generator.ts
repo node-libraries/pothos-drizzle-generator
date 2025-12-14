@@ -26,6 +26,7 @@ import type {
 type ModelData = {
   table: SchemaEntry;
   columns: PgColumn<any, object>[];
+  inputColumns: PgColumn<any, object>[];
   tableInfo: ReturnType<typeof getTableConfig>;
   relations: RelationsRecord;
   executable?: (params: {
@@ -44,6 +45,11 @@ type ModelData = {
     operation: (typeof OperationBasic)[number];
   }) => object | undefined;
   where?: (params: {
+    ctx: any;
+    modelName: string;
+    operation: (typeof OperationBasic)[number];
+  }) => object | undefined;
+  inputData?: (params: {
     ctx: any;
     modelName: string;
     operation: (typeof OperationBasic)[number];
@@ -77,23 +83,36 @@ export class PothosDrizzleGenerator {
         const tableInfo = getConfig(table as PgTable);
         const modelOptions = options?.models?.[name];
         const columns = tableInfo.columns;
-        // Column filter
+        // Columns filter
         const include =
           options?.models?.[name]?.fields?.include ??
           columns.map((c) => c.name);
         const exclude = options?.models?.[name]?.fields?.exclude ?? [];
         const filterColumns = include.filter((name) => !exclude.includes(name));
+        // Input columns filter
+        const includeInput =
+          options?.models?.[name]?.inputFields?.include ??
+          columns.map((c) => c.name);
+        const excludeInput =
+          options?.models?.[name]?.inputFields?.exclude ?? [];
+        const filterInputColumns = includeInput.filter(
+          (name) => !excludeInput.includes(name)
+        );
         return [
           name,
           {
             table,
             columns: columns.filter((c) => filterColumns.includes(c.name)),
+            inputColumns: columns.filter((c) =>
+              filterInputColumns.includes(c.name)
+            ),
             tableInfo,
             relations,
             executable: modelOptions?.executable,
             limit: modelOptions?.limit,
             orderBy: modelOptions?.orderBy,
             where: modelOptions?.where,
+            inputData: modelOptions?.inputData,
           },
         ] as const;
       });
@@ -135,20 +154,17 @@ export class PothosDrizzleGenerator {
     if (!this.inputType[modelName]) this.inputType[modelName] = {};
     if (this.inputType[modelName][type]) return this.inputType[modelName][type];
     const { tableInfo } = this.getTables()[modelName];
-    const input = this.builder.inputType(
-      `${tableInfo.name}Input${type}`,
-      options
-    );
+    const input = this.builder.inputType(`${tableInfo.name}${type}`, options);
     this.inputType[modelName][type] = input;
     return input;
   }
 
   getInputCreate(modelName: string) {
-    const { tableInfo } = this.getTables()[modelName];
+    const { inputColumns } = this.getTables()[modelName];
     return this.getInputType(modelName, "Create", {
       fields: (t) =>
         Object.fromEntries(
-          tableInfo.columns.map((c: PgColumn) => [
+          inputColumns.map((c: PgColumn) => [
             c.name,
             t.field({
               type: this.getDataType(c),
@@ -159,11 +175,11 @@ export class PothosDrizzleGenerator {
     });
   }
   getInputUpdate(modelName: string) {
-    const { tableInfo } = this.getTables()[modelName];
-    return this.getInputType(modelName, "Update", {
+    const { inputColumns } = this.getTables()[modelName];
+    return this.getInputType(modelName, "Input", {
       fields: (t) => {
         return Object.fromEntries(
-          tableInfo.columns.map((c: PgColumn) => [
+          inputColumns.map((c: PgColumn) => [
             c.name,
             t.field({
               type: this.getDataType(c),

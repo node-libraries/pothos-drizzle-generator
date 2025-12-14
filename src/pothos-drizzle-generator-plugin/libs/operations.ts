@@ -20,3 +20,10 @@ export const OperationAll = [
   "mutation",
   ...OperationBasic,
 ] as const;
+
+export const isOperation = (
+  operations: readonly string[],
+  operation: (typeof OperationBasic)[number]
+) => {
+  return operations.includes(operation);
+};

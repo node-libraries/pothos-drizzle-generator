@@ -34,6 +34,7 @@ export class PothosDrizzleGeneratorPlugin<
         limit,
         where,
         orderBy,
+        inputData,
       },
     ] of Object.entries(tables)) {
       const objectRef = builder.objectRef(modelName);
@@ -313,9 +314,10 @@ export class PothosDrizzleGeneratorPlugin<
               ) {
                 throw new Error("No permission");
               }
+              const p = { input: inputData?.({ modelName, ctx, operation }) };
               return (generator.getClient(ctx) as any)
                 .insert(table)
-                .values(args.input)
+                .values({ ...args.input, ...p.input })
                 .returning()
                 .then((v: any) => v[0]);
             },
@@ -339,9 +341,12 @@ export class PothosDrizzleGeneratorPlugin<
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                args: inputData?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any)
                 .insert(table)
-                .values(args.input)
+                .values(args.input.map((v: any) => ({ ...v, ...p.args })))
                 .returning();
             },
           } as never),

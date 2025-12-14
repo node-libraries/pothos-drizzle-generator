@@ -6,6 +6,7 @@ import type {
   RelationsFilter,
 } from "drizzle-orm";
 import type { OperationAll, OperationBasic } from "./libs/operations";
+import type { PgInsertValue, PgTable } from "drizzle-orm/pg-core";
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -61,6 +62,24 @@ declare global {
               operation: (typeof OperationBasic)[number];
             }) =>
               | RelationsFilter<Relations<Types>[U], Relations<Types>>
+              | undefined;
+            inputFields?:
+              | { include: Columns<Types, U>[]; exclude?: undefined }
+              | {
+                  exclude: Columns<Types, U>[];
+                  include?: undefined;
+                };
+            inputData?: (params: {
+              ctx: Types["Context"];
+              modelName: U;
+              operation: (typeof OperationBasic)[number];
+            }) =>
+              | PgInsertValue<
+                  Relations<Types>[U]["table"] extends PgTable
+                    ? Relations<Types>[U]["table"]
+                    : never,
+                  true
+                >
               | undefined;
           };
         };

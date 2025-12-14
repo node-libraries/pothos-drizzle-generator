@@ -10,6 +10,11 @@ import { generate } from "graphql-auto-query";
 import { Hono } from "hono";
 import { relations } from "./db/relations";
 import PothosDrizzleGeneratorPlugin from "./pothos-drizzle-generator-plugin";
+import {
+  isOperation,
+  OperationMutation,
+  OperationQuery,
+} from "./pothos-drizzle-generator-plugin/libs/operations";
 
 const db = drizzle({
   connection: process.env.DATABASE_URL!,
@@ -19,7 +24,7 @@ const db = drizzle({
 
 export interface PothosTypes {
   DrizzleRelations: typeof relations;
-  Context: { name: string };
+  Context: { userId?: string };
 }
 
 const builder = new SchemaBuilder<PothosTypes>({
@@ -32,15 +37,28 @@ const builder = new SchemaBuilder<PothosTypes>({
   pothosDrizzleGenerator: {
     use: { exclude: ["postsToCategories"] },
     models: {
+      users: {
+        // データの変更う禁止
+        operations: { exclude: ["mutation"] },
+      },
       posts: {
-        // fields: { exclude: ["authorId"] },
-        executable: ({ ctx, modelName, operation }) => {
-          // console.log(ctx, modelName, operation);
-          return true;
+        // 上書き禁止フィールド
+        inputFields: { exclude: ["createdAt", "updatedAt"] },
+        // データ書き込み時は自分のIDを設定
+        inputData: ({ ctx }) => {
+          if (!ctx.userId) throw new Error("No permission");
+          return { authorId: ctx.userId };
         },
-        // limit: () => 5,
-        // orderBy: ({ ctx, modelName, operation }) => ({ id: "desc" }),
-        // where: ({ ctx, modelName, operation }) => ({ published: { eq: true } }),
+        where: ({ ctx, operation }) => {
+          // 抽出時は公開されているデータか、自分のデータ
+          if (isOperation(OperationQuery, operation)) {
+            return { OR: [{ published: true }, { authorId: ctx.userId }] };
+          }
+          // 書き込み時は自分のデータ
+          if (isOperation(OperationMutation, operation)) {
+            return { authorId: ctx.userId };
+          }
+        },
       },
     },
   },
