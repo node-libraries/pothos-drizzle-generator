@@ -38,6 +38,16 @@ type ModelData = {
     modelName: string;
     operation: (typeof OperationBasic)[number];
   }) => number | undefined;
+  orderBy?: (params: {
+    ctx: any;
+    modelName: string;
+    operation: (typeof OperationBasic)[number];
+  }) => object | undefined;
+  where?: (params: {
+    ctx: any;
+    modelName: string;
+    operation: (typeof OperationBasic)[number];
+  }) => object | undefined;
 };
 
 export class PothosDrizzleGenerator {
@@ -82,6 +92,8 @@ export class PothosDrizzleGenerator {
             relations,
             executable: modelOptions?.executable,
             limit: modelOptions?.limit,
+            orderBy: modelOptions?.orderBy,
+            where: modelOptions?.where,
           },
         ] as const;
       });

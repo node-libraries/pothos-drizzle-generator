@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { PothosDrizzleGenerator } from "./generator";
 import { createWhereQuery } from "./libs/utils";
 
@@ -25,7 +25,16 @@ export class PothosDrizzleGeneratorPlugin<
     const tables = generator.getTables();
     for (const [
       modelName,
-      { table, tableInfo, relations, columns, executable },
+      {
+        table,
+        tableInfo,
+        relations,
+        columns,
+        executable,
+        limit,
+        where,
+        orderBy,
+      },
     ] of Object.entries(tables)) {
       const objectRef = builder.objectRef(modelName);
       objectRef.implement({
@@ -52,7 +61,8 @@ export class PothosDrizzleGeneratorPlugin<
         name: tableInfo.name,
         fields: (t) => {
           const relayList = filterRelations.map(([relayName, relay]) => {
-            const { executable } = tables[relay.targetTableName];
+            const { executable, where, orderBy, limit } =
+              tables[relay.targetTableName];
             const inputWhere = generator.getInputWhere(relay.targetTableName);
             const inputOrderBy = generator.getInputOrderBy(
               relay.targetTableName
@@ -76,41 +86,65 @@ export class PothosDrizzleGeneratorPlugin<
                   },
                   ctx: any
                 ) => {
+                  const modelName = relay.targetTableName;
+                  const operation =
+                    relay.relationType === "one" ? "findFirst" : "findMany";
                   if (
                     executable?.({
-                      modelName: relay.targetTableName,
+                      modelName,
                       ctx,
-                      operation:
-                        relay.relationType === "one" ? "findFirst" : "findMany",
+                      operation,
                     }) === false
                   ) {
                     throw new Error("No permission");
                   }
-
-                  return args;
+                  const p = {
+                    limit: limit?.({ modelName, ctx, operation }),
+                    where: where?.({ modelName, ctx, operation }),
+                    orderBy: orderBy?.({ modelName, ctx, operation }),
+                  };
+                  return {
+                    ...args,
+                    limit:
+                      p.limit && args.limit
+                        ? Math.min(p.limit, args.limit)
+                        : p.limit ?? args.limit,
+                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    orderBy:
+                      args.orderBy && Object.keys(args.orderBy).length
+                        ? args.orderBy
+                        : p.orderBy,
+                  };
                 },
               } as never),
             ];
           });
           const relayCount = filterRelations.map(([relayName, relay]) => {
-            const { executable } = tables[relay.targetTableName];
+            const { executable, where } = tables[relay.targetTableName];
             const inputWhere = generator.getInputWhere(relay.targetTableName);
             return [
               `${relayName}Count`,
               t.relatedCount(relayName, {
                 args: { where: t.arg({ type: inputWhere }) },
                 where: (args: any, ctx: any) => {
+                  const modelName = relay.targetTableName;
+                  const operation = "count";
                   if (
                     executable?.({
-                      modelName: relay.targetTableName,
+                      modelName,
                       ctx,
-                      operation: "count",
+                      operation,
                     }) === false
                   ) {
                     throw new Error("No permission");
                   }
+                  const p = {
+                    where: where?.({ modelName, ctx, operation }),
+                  };
 
-                  return args.where;
+                  return createWhereQuery(relay.targetTable, {
+                    AND: [args.where, p.where].filter((v) => v),
+                  } as never);
                 },
               } as never),
             ];
@@ -147,18 +181,37 @@ export class PothosDrizzleGeneratorPlugin<
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "findMany";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "findMany",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                limit: limit?.({ modelName, ctx, operation }),
+                where: where?.({ modelName, ctx, operation }),
+                orderBy: orderBy?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any).query[
                 modelName
-              ].findMany(query(args));
+              ].findMany(
+                query({
+                  ...args,
+                  limit:
+                    p.limit && args.limit
+                      ? Math.min(p.limit, args.limit)
+                      : p.limit ?? args.limit,
+                  where: { AND: [args.where, p.where].filter((v) => v) },
+                  orderBy:
+                    args.orderBy && Object.keys(args.orderBy).length
+                      ? args.orderBy
+                      : p.orderBy,
+                })
+              );
             },
           } as never),
         }),
@@ -173,18 +226,32 @@ export class PothosDrizzleGeneratorPlugin<
               orderBy: t.arg({ type: inputOrderBy }),
             },
             resolve: async (query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "findFirst";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "findFirst",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                where: where?.({ modelName, ctx, operation }),
+                orderBy: orderBy?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any).query[
                 modelName
-              ].findFirst(query({ args }));
+              ].findFirst(
+                query({
+                  ...args,
+                  where: { AND: [args.where, p.where].filter((v) => v) },
+                  orderBy:
+                    args.orderBy && Object.keys(args.orderBy).length
+                      ? args.orderBy
+                      : p.orderBy,
+                })
+              );
             },
           } as never),
         }),
@@ -199,20 +266,30 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "count";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "count",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                limit: limit?.({ modelName, ctx, operation }),
+                where: where?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any).query[modelName]
                 .findFirst({
                   columns: {},
                   extras: { _count: () => sql`count(*)` },
                   ...args,
+                  limit:
+                    p.limit && args.limit
+                      ? Math.min(p.limit, args.limit)
+                      : p.limit ?? args.limit,
+                  where: { AND: [args.where, p.where].filter((v) => v) },
                 })
                 .then((v: any) => v._count);
             },
@@ -226,11 +303,12 @@ export class PothosDrizzleGeneratorPlugin<
             nullable: false,
             args: { input: t.arg({ type: inputCreate, required: true }) },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "createOne";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "createOne",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
@@ -251,11 +329,12 @@ export class PothosDrizzleGeneratorPlugin<
             nullable: false,
             args: { input: t.arg({ type: [inputCreate], required: true }) },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "createMany";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "createMany",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
@@ -278,20 +357,26 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
+              const operation = "update";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "update",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                where: where?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any)
                 .update(table)
                 .set(args.input)
                 .where(
-                  args.where ? createWhereQuery(table, args.where) : undefined
+                  createWhereQuery(table, {
+                    AND: [args.where, p.where].filter((v) => v),
+                  } as never)
                 )
                 .returning();
             },
@@ -307,19 +392,25 @@ export class PothosDrizzleGeneratorPlugin<
               where: t.arg({ type: inputWhere }),
             },
             resolve: async (_parent: any, args: any, ctx: any) => {
+              const operation = "delete";
               if (
                 executable?.({
                   modelName,
                   ctx,
-                  operation: "delete",
+                  operation,
                 }) === false
               ) {
                 throw new Error("No permission");
               }
+              const p = {
+                where: where?.({ modelName, ctx, operation }),
+              };
               return (generator.getClient(ctx) as any)
                 .delete(table)
                 .where(
-                  args.where ? createWhereQuery(table, args.where) : undefined
+                  createWhereQuery(table, {
+                    AND: [args.where, p.where].filter((v) => v),
+                  } as never)
                 )
                 .returning();
             },

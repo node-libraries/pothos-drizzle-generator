@@ -45,21 +45,27 @@ type OperatorTree =
 export const createWhereQuery = (
   table: p.SchemaEntry,
   tree?: OperatorTree
-): p.SQL => {
+): p.SQL | undefined => {
   if (!tree) return p.and()!;
   const result: p.SQL[] = Object.entries(tree)
     .map(([key, value]) => {
       switch (key) {
         case "AND":
-          return p.and(
-            ...value.map((v: OperatorTree) => createWhereQuery(table, v))
-          );
+          return value.length
+            ? p.and(
+                ...value.map((v: OperatorTree) => createWhereQuery(table, v))
+              )
+            : undefined;
         case "OR":
-          return p.or(
-            ...value.map((v: OperatorTree) => createWhereQuery(table, v))
-          );
-        case "NOT":
-          p.not(createWhereQuery(table, value));
+          return value.length
+            ? p.or(
+                ...value.map((v: OperatorTree) => createWhereQuery(table, v))
+              )
+            : undefined;
+        case "NOT": {
+          const v = createWhereQuery(table, value);
+          return v ? p.not(v) : undefined;
+        }
       }
       const result = Object.entries(value).map(([k, v]) => {
         const m = OperatorMap[k as keyof typeof OperatorMap];
@@ -74,12 +80,8 @@ export const createWhereQuery = (
       return p.and(...result);
     })
     .flatMap((v) => (v ? [v] : []));
-  if (result.length === 1) {
-    return result[0] as p.SQL;
-  }
-  const r = p.and(...result);
-  if (!r) throw "Error convert where query";
-  return r;
+  if (result.length === 1) return result[0] as p.SQL;
+  return p.and(...result);
 };
 
 export const createInputOperator = (

@@ -25,19 +25,23 @@ export interface PothosTypes {
 const builder = new SchemaBuilder<PothosTypes>({
   plugins: [DrizzlePlugin, PothosDrizzleGeneratorPlugin],
   drizzle: {
-    client: db,
+    client: () => db,
+    relations,
     getTableConfig,
   },
   pothosDrizzleGenerator: {
     use: { exclude: ["postsToCategories"] },
     models: {
-      // posts: {
-      //   fields: { exclude: ["authorId"] },
-      //   executable: ({ ctx, modelName, operation }) => false,
-      //   limit: () => 5,
-      //   orderBy: ({ ctx, modelName, operation }) => ({ id: "desc" }),
-      //   where: ({ ctx, modelName, operation }) => ({ authorId: { eq: "" } }),
-      // },
+      posts: {
+        // fields: { exclude: ["authorId"] },
+        executable: ({ ctx, modelName, operation }) => {
+          // console.log(ctx, modelName, operation);
+          return true;
+        },
+        // limit: () => 5,
+        // orderBy: ({ ctx, modelName, operation }) => ({ id: "desc" }),
+        // where: ({ ctx, modelName, operation }) => ({ published: { eq: true } }),
+      },
     },
   },
 });
@@ -58,10 +62,11 @@ app.get("/", (c) => {
     })
   );
 });
-app.post("/", (...params) =>
+app.post(
+  "/",
   graphqlServer({
     schema,
-  })(...params)
+  })
 );
 
 serve(app);

@@ -30,7 +30,7 @@ declare global {
           | { exclude: (keyof Relations<Types>)[]; include?: undefined };
         models?: {
           [U in Tables<Types>]?: {
-            fields:
+            fields?:
               | { include: Columns<Types, U>[]; exclude?: undefined }
               | {
                   exclude: Columns<Types, U>[];
