@@ -5,7 +5,11 @@ import type {
   GetTableViewFieldSelection,
   RelationsFilter,
 } from "drizzle-orm";
-import type { OperationAll, OperationBasic } from "./libs/operations";
+import type {
+  Operation,
+  OperationAll,
+  OperationBasic,
+} from "./libs/operations";
 import type { PgInsertValue, PgTable } from "drizzle-orm/pg-core";
 
 declare global {
@@ -38,8 +42,8 @@ declare global {
                   include?: undefined;
                 };
             operations?: {
-              include?: (typeof OperationAll)[number][];
-              exclude?: (typeof OperationAll)[number][];
+              include?: Operation[];
+              exclude?: Operation[];
             };
             executable?: (params: {
               ctx: Types["Context"];

@@ -38,7 +38,7 @@ const builder = new SchemaBuilder<PothosTypes>({
     use: { exclude: ["postsToCategories"] },
     models: {
       users: {
-        // データの変更う禁止
+        // データの変更禁止
         operations: { exclude: ["mutation"] },
       },
       posts: {

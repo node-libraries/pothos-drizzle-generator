@@ -21,6 +21,26 @@ export const OperationAll = [
   ...OperationBasic,
 ] as const;
 
+export type Operation = (typeof OperationAll)[number] | "all";
+
+export const expandOperations = (operations: readonly Operation[]) => {
+  return operations.flatMap<(typeof OperationBasic)[number]>((v) =>
+    v === "all"
+      ? OperationBasic
+      : v === "find"
+      ? OperationFind
+      : v === "update"
+      ? OperationUpdate
+      : v === "delete"
+      ? OperationDelete
+      : v === "query"
+      ? OperationQuery
+      : v === "mutation"
+      ? OperationMutation
+      : [v]
+  );
+};
+
 export const isOperation = (
   operations: readonly string[],
   operation: (typeof OperationBasic)[number]

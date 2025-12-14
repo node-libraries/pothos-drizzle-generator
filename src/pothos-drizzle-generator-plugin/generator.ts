@@ -13,8 +13,8 @@ import {
   HexadecimalResolver,
   JSONResolver,
 } from "graphql-scalars";
+import { expandOperations, OperationBasic } from "./libs/operations";
 import { createInputOperator } from "./libs/utils";
-import type { OperationBasic } from "./libs/operations";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
 import type {
   PgArray,
@@ -25,6 +25,7 @@ import type {
 
 type ModelData = {
   table: SchemaEntry;
+  operations: (typeof OperationBasic)[number][];
   columns: PgColumn<any, object>[];
   inputColumns: PgColumn<any, object>[];
   tableInfo: ReturnType<typeof getTableConfig>;
@@ -83,6 +84,17 @@ export class PothosDrizzleGenerator {
         const tableInfo = getConfig(table as PgTable);
         const modelOptions = options?.models?.[name];
         const columns = tableInfo.columns;
+        //Operations
+        const operationIncludes = expandOperations(
+          modelOptions?.operations?.include ?? OperationBasic
+        );
+        const operationExcludes = expandOperations(
+          modelOptions?.operations?.exclude ?? []
+        );
+        const operations = operationIncludes.filter(
+          (v) => !operationExcludes.includes(v)
+        );
+
         // Columns filter
         const include =
           options?.models?.[name]?.fields?.include ??
@@ -103,6 +115,7 @@ export class PothosDrizzleGenerator {
           {
             table,
             columns: columns.filter((c) => filterColumns.includes(c.name)),
+            operations,
             inputColumns: columns.filter((c) =>
               filterInputColumns.includes(c.name)
             ),

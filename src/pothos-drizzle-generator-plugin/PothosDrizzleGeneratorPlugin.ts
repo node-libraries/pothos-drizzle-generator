@@ -30,6 +30,7 @@ export class PothosDrizzleGeneratorPlugin<
         tableInfo,
         relations,
         columns,
+        operations,
         executable,
         limit,
         where,
@@ -62,12 +63,14 @@ export class PothosDrizzleGeneratorPlugin<
         name: tableInfo.name,
         fields: (t) => {
           const relayList = filterRelations.map(([relayName, relay]) => {
-            const { executable, where, orderBy, limit } =
-              tables[relay.targetTableName];
-            const inputWhere = generator.getInputWhere(relay.targetTableName);
-            const inputOrderBy = generator.getInputOrderBy(
-              relay.targetTableName
-            );
+            const modelName = relay.targetTableName;
+            const { executable, where, orderBy, limit, operations } =
+              tables[modelName];
+            const operation =
+              relay.relationType === "one" ? "findFirst" : "findMany";
+            if (!operations.includes(operation)) return [];
+            const inputWhere = generator.getInputWhere(modelName);
+            const inputOrderBy = generator.getInputOrderBy(modelName);
             return [
               relayName,
               t.relation(relayName, {
@@ -87,9 +90,6 @@ export class PothosDrizzleGeneratorPlugin<
                   },
                   ctx: any
                 ) => {
-                  const modelName = relay.targetTableName;
-                  const operation =
-                    relay.relationType === "one" ? "findFirst" : "findMany";
                   if (
                     executable?.({
                       modelName,
@@ -121,14 +121,16 @@ export class PothosDrizzleGeneratorPlugin<
             ];
           });
           const relayCount = filterRelations.map(([relayName, relay]) => {
-            const { executable, where } = tables[relay.targetTableName];
-            const inputWhere = generator.getInputWhere(relay.targetTableName);
+            const modelName = relay.targetTableName;
+            const { executable, where, operations } = tables[modelName];
+            if (!operations.includes("count")) return [];
+
+            const inputWhere = generator.getInputWhere(modelName);
             return [
               `${relayName}Count`,
               t.relatedCount(relayName, {
                 args: { where: t.arg({ type: inputWhere }) },
                 where: (args: any, ctx: any) => {
-                  const modelName = relay.targetTableName;
                   const operation = "count";
                   if (
                     executable?.({
@@ -170,258 +172,302 @@ export class PothosDrizzleGeneratorPlugin<
       const inputOrderBy = generator.getInputOrderBy(modelName);
       const inputCreate = generator.getInputCreate(modelName);
       const inputUpdate = generator.getInputUpdate(modelName);
-      builder.queryType({
-        fields: (t) => ({
-          [`findMany${tableInfo.name}`]: t.drizzleField({
-            type: [modelName],
-            nullable: false,
-            args: {
-              offset: t.arg({ type: "Int" }),
-              limit: t.arg({ type: "Int" }),
-              where: t.arg({ type: inputWhere }),
-              orderBy: t.arg({ type: inputOrderBy }),
-            },
-            resolve: async (query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "findMany";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                limit: limit?.({ modelName, ctx, operation }),
-                where: where?.({ modelName, ctx, operation }),
-                orderBy: orderBy?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any).query[
-                modelName
-              ].findMany(
-                query({
-                  ...args,
-                  limit:
-                    p.limit && args.limit
-                      ? Math.min(p.limit, args.limit)
-                      : p.limit ?? args.limit,
-                  where: { AND: [args.where, p.where].filter((v) => v) },
-                  orderBy:
-                    args.orderBy && Object.keys(args.orderBy).length
-                      ? args.orderBy
-                      : p.orderBy,
-                })
-              );
-            },
-          } as never),
-        }),
-      });
-      builder.queryType({
-        fields: (t) => ({
-          [`findFirst${tableInfo.name}`]: t.drizzleField({
-            type: modelName,
-            args: {
-              offset: t.arg({ type: "Int" }),
-              where: t.arg({ type: inputWhere }),
-              orderBy: t.arg({ type: inputOrderBy }),
-            },
-            resolve: async (query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "findFirst";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                where: where?.({ modelName, ctx, operation }),
-                orderBy: orderBy?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any).query[
-                modelName
-              ].findFirst(
-                query({
-                  ...args,
-                  where: { AND: [args.where, p.where].filter((v) => v) },
-                  orderBy:
-                    args.orderBy && Object.keys(args.orderBy).length
-                      ? args.orderBy
-                      : p.orderBy,
-                })
-              );
-            },
-          } as never),
-        }),
-      });
-      builder.queryType({
-        fields: (t) => ({
-          [`count${tableInfo.name}`]: t.field({
-            type: "Int",
-            nullable: false,
-            args: {
-              limit: t.arg({ type: "Int" }),
-              where: t.arg({ type: inputWhere }),
-            },
-            resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "count";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                limit: limit?.({ modelName, ctx, operation }),
-                where: where?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any).query[modelName]
-                .findFirst({
-                  columns: {},
-                  extras: { _count: () => sql`count(*)` },
-                  ...args,
-                  limit:
-                    p.limit && args.limit
-                      ? Math.min(p.limit, args.limit)
-                      : p.limit ?? args.limit,
-                  where: { AND: [args.where, p.where].filter((v) => v) },
-                })
-                .then((v: any) => v._count);
-            },
-          } as never),
-        }),
-      });
-      builder.mutationType({
-        fields: (t) => ({
-          [`createOne${tableInfo.name}`]: t.drizzleField({
-            type: modelName,
-            nullable: false,
-            args: { input: t.arg({ type: inputCreate, required: true }) },
-            resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "createOne";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = { input: inputData?.({ modelName, ctx, operation }) };
-              return (generator.getClient(ctx) as any)
-                .insert(table)
-                .values({ ...args.input, ...p.input })
-                .returning()
-                .then((v: any) => v[0]);
-            },
-          } as never),
-        }),
-      });
-      builder.mutationType({
-        fields: (t) => ({
-          [`createMany${tableInfo.name}`]: t.drizzleField({
-            type: [modelName],
-            nullable: false,
-            args: { input: t.arg({ type: [inputCreate], required: true }) },
-            resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "createMany";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                args: inputData?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any)
-                .insert(table)
-                .values(args.input.map((v: any) => ({ ...v, ...p.args })))
-                .returning();
-            },
-          } as never),
-        }),
-      });
-      builder.mutationType({
-        fields: (t) => ({
-          [`update${tableInfo.name}`]: t.drizzleField({
-            type: [modelName],
-            nullable: false,
-            args: {
-              input: t.arg({ type: inputUpdate, required: true }),
-              where: t.arg({ type: inputWhere }),
-            },
-            resolve: async (_query: any, _parent: any, args: any, ctx: any) => {
-              const operation = "update";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                where: where?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any)
-                .update(table)
-                .set(args.input)
-                .where(
-                  createWhereQuery(table, {
-                    AND: [args.where, p.where].filter((v) => v),
-                  } as never)
-                )
-                .returning();
-            },
-          } as never),
-        }),
-      });
-      builder.mutationType({
-        fields: (t) => ({
-          [`delete${tableInfo.name}`]: t.field({
-            type: [modelName],
-            nullable: false,
-            args: {
-              where: t.arg({ type: inputWhere }),
-            },
-            resolve: async (_parent: any, args: any, ctx: any) => {
-              const operation = "delete";
-              if (
-                executable?.({
-                  modelName,
-                  ctx,
-                  operation,
-                }) === false
-              ) {
-                throw new Error("No permission");
-              }
-              const p = {
-                where: where?.({ modelName, ctx, operation }),
-              };
-              return (generator.getClient(ctx) as any)
-                .delete(table)
-                .where(
-                  createWhereQuery(table, {
-                    AND: [args.where, p.where].filter((v) => v),
-                  } as never)
-                )
-                .returning();
-            },
-          } as never),
-        }),
-      });
+      if (operations.includes("findMany")) {
+        builder.queryType({
+          fields: (t) => ({
+            [`findMany${tableInfo.name}`]: t.drizzleField({
+              type: [modelName],
+              nullable: false,
+              args: {
+                offset: t.arg({ type: "Int" }),
+                limit: t.arg({ type: "Int" }),
+                where: t.arg({ type: inputWhere }),
+                orderBy: t.arg({ type: inputOrderBy }),
+              },
+              resolve: async (
+                query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "findMany";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  limit: limit?.({ modelName, ctx, operation }),
+                  where: where?.({ modelName, ctx, operation }),
+                  orderBy: orderBy?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any).query[
+                  modelName
+                ].findMany(
+                  query({
+                    ...args,
+                    limit:
+                      p.limit && args.limit
+                        ? Math.min(p.limit, args.limit)
+                        : p.limit ?? args.limit,
+                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    orderBy:
+                      args.orderBy && Object.keys(args.orderBy).length
+                        ? args.orderBy
+                        : p.orderBy,
+                  })
+                );
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("findFirst")) {
+        builder.queryType({
+          fields: (t) => ({
+            [`findFirst${tableInfo.name}`]: t.drizzleField({
+              type: modelName,
+              args: {
+                offset: t.arg({ type: "Int" }),
+                where: t.arg({ type: inputWhere }),
+                orderBy: t.arg({ type: inputOrderBy }),
+              },
+              resolve: async (
+                query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "findFirst";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  where: where?.({ modelName, ctx, operation }),
+                  orderBy: orderBy?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any).query[
+                  modelName
+                ].findFirst(
+                  query({
+                    ...args,
+                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    orderBy:
+                      args.orderBy && Object.keys(args.orderBy).length
+                        ? args.orderBy
+                        : p.orderBy,
+                  })
+                );
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("count")) {
+        builder.queryType({
+          fields: (t) => ({
+            [`count${tableInfo.name}`]: t.field({
+              type: "Int",
+              nullable: false,
+              args: {
+                limit: t.arg({ type: "Int" }),
+                where: t.arg({ type: inputWhere }),
+              },
+              resolve: async (
+                _query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "count";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  limit: limit?.({ modelName, ctx, operation }),
+                  where: where?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any).query[modelName]
+                  .findFirst({
+                    columns: {},
+                    extras: { _count: () => sql`count(*)` },
+                    ...args,
+                    limit:
+                      p.limit && args.limit
+                        ? Math.min(p.limit, args.limit)
+                        : p.limit ?? args.limit,
+                    where: { AND: [args.where, p.where].filter((v) => v) },
+                  })
+                  .then((v: any) => v._count);
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("createOne")) {
+        builder.mutationType({
+          fields: (t) => ({
+            [`createOne${tableInfo.name}`]: t.drizzleField({
+              type: modelName,
+              nullable: false,
+              args: { input: t.arg({ type: inputCreate, required: true }) },
+              resolve: async (
+                _query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "createOne";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = { input: inputData?.({ modelName, ctx, operation }) };
+                return (generator.getClient(ctx) as any)
+                  .insert(table)
+                  .values({ ...args.input, ...p.input })
+                  .returning()
+                  .then((v: any) => v[0]);
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("createMany")) {
+        builder.mutationType({
+          fields: (t) => ({
+            [`createMany${tableInfo.name}`]: t.drizzleField({
+              type: [modelName],
+              nullable: false,
+              args: { input: t.arg({ type: [inputCreate], required: true }) },
+              resolve: async (
+                _query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "createMany";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  args: inputData?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any)
+                  .insert(table)
+                  .values(args.input.map((v: any) => ({ ...v, ...p.args })))
+                  .returning();
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("update")) {
+        builder.mutationType({
+          fields: (t) => ({
+            [`update${tableInfo.name}`]: t.drizzleField({
+              type: [modelName],
+              nullable: false,
+              args: {
+                input: t.arg({ type: inputUpdate, required: true }),
+                where: t.arg({ type: inputWhere }),
+              },
+              resolve: async (
+                _query: any,
+                _parent: any,
+                args: any,
+                ctx: any
+              ) => {
+                const operation = "update";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  where: where?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any)
+                  .update(table)
+                  .set(args.input)
+                  .where(
+                    createWhereQuery(table, {
+                      AND: [args.where, p.where].filter((v) => v),
+                    } as never)
+                  )
+                  .returning();
+              },
+            } as never),
+          }),
+        });
+      }
+      if (operations.includes("delete")) {
+        builder.mutationType({
+          fields: (t) => ({
+            [`delete${tableInfo.name}`]: t.field({
+              type: [modelName],
+              nullable: false,
+              args: {
+                where: t.arg({ type: inputWhere }),
+              },
+              resolve: async (_parent: any, args: any, ctx: any) => {
+                const operation = "delete";
+                if (
+                  executable?.({
+                    modelName,
+                    ctx,
+                    operation,
+                  }) === false
+                ) {
+                  throw new Error("No permission");
+                }
+                const p = {
+                  where: where?.({ modelName, ctx, operation }),
+                };
+                return (generator.getClient(ctx) as any)
+                  .delete(table)
+                  .where(
+                    createWhereQuery(table, {
+                      AND: [args.where, p.where].filter((v) => v),
+                    } as never)
+                  )
+                  .returning();
+              },
+            } as never),
+          }),
+        });
+      }
     }
   }
 }
