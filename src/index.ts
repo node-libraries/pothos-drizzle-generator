@@ -35,6 +35,8 @@ const builder = new SchemaBuilder<PothosTypes>({
     getTableConfig,
   },
   pothosDrizzleGenerator: {
+    // クエリの最大の深さ
+    depthLimit: () => 5,
     use: { exclude: ["postsToCategories"] },
     models: {
       users: {
@@ -52,7 +54,9 @@ const builder = new SchemaBuilder<PothosTypes>({
         where: ({ ctx, operation }) => {
           // 抽出時は公開されているデータか、自分のデータ
           if (isOperation(OperationQuery, operation)) {
-            return { OR: [{ published: true }, { authorId: ctx.userId }] };
+            return {
+              OR: [{ published: true }, { authorId: { eq: ctx.userId } }],
+            };
           }
           // 書き込み時は自分のデータ
           if (isOperation(OperationMutation, operation)) {

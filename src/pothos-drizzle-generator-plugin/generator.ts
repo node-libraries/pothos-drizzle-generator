@@ -158,6 +158,10 @@ export class PothosDrizzleGenerator {
     this.tables = tables;
     return tables;
   }
+  getDepthLimit() {
+    const options = this.builder.options.pothosDrizzleGenerator;
+    return options?.depthLimit;
+  }
 
   getInputType(
     modelName: string,

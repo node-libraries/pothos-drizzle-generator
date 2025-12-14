@@ -30,6 +30,11 @@ declare global {
     >;
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       pothosDrizzleGenerator?: {
+        depthLimit?: (params: {
+          ctx: Types["Context"];
+          modelName: Tables<Types>;
+          operation: (typeof OperationBasic)[number];
+        }) => number | undefined;
         use?:
           | { include: (keyof Relations<Types>)[]; exclude?: undefined }
           | { exclude: (keyof Relations<Types>)[]; include?: undefined };

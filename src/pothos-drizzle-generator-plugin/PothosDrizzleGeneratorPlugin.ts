@@ -2,7 +2,8 @@
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
 import { sql } from "drizzle-orm";
 import { PothosDrizzleGenerator } from "./generator";
-import { createWhereQuery } from "./libs/utils";
+import { createWhereQuery, getQueryDepth } from "./libs/utils";
+import type { GraphQLResolveInfo } from "graphql";
 
 export class PothosDrizzleGeneratorPlugin<
   Types extends SchemaTypes,
@@ -22,6 +23,7 @@ export class PothosDrizzleGeneratorPlugin<
     const generator = this.generator;
 
     const builder = this.builder;
+    const depthLimit = generator.getDepthLimit();
     const tables = generator.getTables();
     for (const [
       modelName,
@@ -122,8 +124,9 @@ export class PothosDrizzleGeneratorPlugin<
           });
           const relayCount = filterRelations.map(([relayName, relay]) => {
             const modelName = relay.targetTableName;
+            const operation = "count";
             const { executable, where, operations } = tables[modelName];
-            if (!operations.includes("count")) return [];
+            if (!operations.includes(operation)) return [];
 
             const inputWhere = generator.getInputWhere(modelName);
             return [
@@ -131,7 +134,6 @@ export class PothosDrizzleGeneratorPlugin<
               t.relatedCount(relayName, {
                 args: { where: t.arg({ type: inputWhere }) },
                 where: (args: any, ctx: any) => {
-                  const operation = "count";
                   if (
                     executable?.({
                       modelName,
@@ -144,7 +146,6 @@ export class PothosDrizzleGeneratorPlugin<
                   const p = {
                     where: where?.({ modelName, ctx, operation }),
                   };
-
                   return createWhereQuery(relay.targetTable, {
                     AND: [args.where, p.where].filter((v) => v),
                   } as never);
@@ -188,7 +189,8 @@ export class PothosDrizzleGeneratorPlugin<
                 query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "findMany";
                 if (
@@ -201,10 +203,17 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   limit: limit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                   orderBy: orderBy?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
+
                 return (generator.getClient(ctx) as any).query[
                   modelName
                 ].findMany(
@@ -240,7 +249,8 @@ export class PothosDrizzleGeneratorPlugin<
                 query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "findFirst";
                 if (
@@ -253,9 +263,15 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                   orderBy: orderBy?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any).query[
                   modelName
                 ].findFirst(
@@ -287,7 +303,8 @@ export class PothosDrizzleGeneratorPlugin<
                 _query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "count";
                 if (
@@ -300,9 +317,15 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   limit: limit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any).query[modelName]
                   .findFirst({
                     columns: {},
@@ -331,7 +354,8 @@ export class PothosDrizzleGeneratorPlugin<
                 _query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "createOne";
                 if (
@@ -343,7 +367,15 @@ export class PothosDrizzleGeneratorPlugin<
                 ) {
                   throw new Error("No permission");
                 }
-                const p = { input: inputData?.({ modelName, ctx, operation }) };
+                const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
+                  input: inputData?.({ modelName, ctx, operation }),
+                };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any)
                   .insert(table)
                   .values({ ...args.input, ...p.input })
@@ -365,7 +397,8 @@ export class PothosDrizzleGeneratorPlugin<
                 _query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "createMany";
                 if (
@@ -378,8 +411,14 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   args: inputData?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any)
                   .insert(table)
                   .values(args.input.map((v: any) => ({ ...v, ...p.args })))
@@ -403,7 +442,8 @@ export class PothosDrizzleGeneratorPlugin<
                 _query: any,
                 _parent: any,
                 args: any,
-                ctx: any
+                ctx: any,
+                info: GraphQLResolveInfo
               ) => {
                 const operation = "update";
                 if (
@@ -416,8 +456,14 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any)
                   .update(table)
                   .set(args.input)
@@ -441,7 +487,12 @@ export class PothosDrizzleGeneratorPlugin<
               args: {
                 where: t.arg({ type: inputWhere }),
               },
-              resolve: async (_parent: any, args: any, ctx: any) => {
+              resolve: async (
+                _parent: any,
+                args: any,
+                ctx: any,
+                info: GraphQLResolveInfo
+              ) => {
                 const operation = "delete";
                 if (
                   executable?.({
@@ -453,8 +504,14 @@ export class PothosDrizzleGeneratorPlugin<
                   throw new Error("No permission");
                 }
                 const p = {
+                  depthLimit: depthLimit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                 };
+                if (
+                  p.depthLimit !== undefined &&
+                  getQueryDepth(info) > p.depthLimit
+                )
+                  throw new Error("Depth limit exceeded");
                 return (generator.getClient(ctx) as any)
                   .delete(table)
                   .where(

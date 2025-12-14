@@ -1,6 +1,25 @@
 import { collectFields } from "@graphql-tools/utils";
 import * as p from "drizzle-orm";
-import { GraphQLResolveInfo } from "graphql";
+
+import { GraphQLResolveInfo, FieldNode, SelectionNode } from "graphql";
+
+function getDepthFromSelection(
+  selection: SelectionNode | FieldNode,
+  currentDepth: number
+): number {
+  if (selection.kind === "Field" && selection.selectionSet) {
+    // 子フィールドがある場合はさらに深さを加算
+    const childDepths = selection.selectionSet.selections.map((sel) =>
+      getDepthFromSelection(sel, currentDepth + 1)
+    );
+    return Math.max(...childDepths);
+  }
+  return currentDepth;
+}
+
+export function getQueryDepth(info: GraphQLResolveInfo): number {
+  return getDepthFromSelection(info.fieldNodes[0], 0);
+}
 
 export const getQueryFields = (info: GraphQLResolveInfo) => {
   return Object.fromEntries(
