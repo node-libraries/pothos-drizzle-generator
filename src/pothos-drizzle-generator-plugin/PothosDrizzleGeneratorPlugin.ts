@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { PothosDrizzleGenerator } from "./generator";
 import { createWhereQuery } from "./libs/utils";
 
