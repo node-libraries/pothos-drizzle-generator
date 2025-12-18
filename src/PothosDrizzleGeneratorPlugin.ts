@@ -76,7 +76,7 @@ export class PothosDrizzleGeneratorPlugin<
             return [
               relayName,
               t.relation(relayName, {
-                columns: { id: true },
+                nullable: relay.relationType === "one",
                 args: {
                   offset: t.arg({ type: "Int" }),
                   limit: t.arg({ type: "Int" }),
@@ -112,7 +112,11 @@ export class PothosDrizzleGeneratorPlugin<
                       p.limit && args.limit
                         ? Math.min(p.limit, args.limit)
                         : p.limit ?? args.limit,
-                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    where: {
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
+                    },
                     orderBy:
                       args.orderBy && Object.keys(args.orderBy).length
                         ? args.orderBy
@@ -147,7 +151,9 @@ export class PothosDrizzleGeneratorPlugin<
                     where: where?.({ modelName, ctx, operation }),
                   };
                   return createWhereQuery(relay.targetTable, {
-                    AND: [args.where, p.where].filter((v) => v),
+                    AND: [structuredClone(args.where), p.where].filter(
+                      (v) => v
+                    ),
                   } as never);
                 },
               } as never),
@@ -223,7 +229,11 @@ export class PothosDrizzleGeneratorPlugin<
                       p.limit && args.limit
                         ? Math.min(p.limit, args.limit)
                         : p.limit ?? args.limit,
-                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    where: {
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
+                    },
                     orderBy:
                       args.orderBy && Object.keys(args.orderBy).length
                         ? args.orderBy
@@ -277,7 +287,11 @@ export class PothosDrizzleGeneratorPlugin<
                 ].findFirst(
                   query({
                     ...args,
-                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    where: {
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
+                    },
                     orderBy:
                       args.orderBy && Object.keys(args.orderBy).length
                         ? args.orderBy
@@ -335,7 +349,11 @@ export class PothosDrizzleGeneratorPlugin<
                       p.limit && args.limit
                         ? Math.min(p.limit, args.limit)
                         : p.limit ?? args.limit,
-                    where: { AND: [args.where, p.where].filter((v) => v) },
+                    where: {
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
+                    },
                   })
                   .then((v: any) => v._count);
               },
@@ -469,7 +487,9 @@ export class PothosDrizzleGeneratorPlugin<
                   .set(args.input)
                   .where(
                     createWhereQuery(table, {
-                      AND: [args.where, p.where].filter((v) => v),
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
                     } as never)
                   )
                   .returning();
@@ -516,7 +536,9 @@ export class PothosDrizzleGeneratorPlugin<
                   .delete(table)
                   .where(
                     createWhereQuery(table, {
-                      AND: [args.where, p.where].filter((v) => v),
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
                     } as never)
                   )
                   .returning();
