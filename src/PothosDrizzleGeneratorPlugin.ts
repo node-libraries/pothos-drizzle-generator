@@ -40,7 +40,7 @@ export class PothosDrizzleGeneratorPlugin<
         depthLimit,
       },
     ] of Object.entries(tables)) {
-      const objectRef = builder.objectRef(`_${tableInfo.name}_`);
+      const objectRef = builder.objectRef(`${tableInfo.name}_`);
       objectRef.implement({
         fields: (t) =>
           Object.fromEntries(
@@ -482,7 +482,7 @@ export class PothosDrizzleGeneratorPlugin<
         builder.mutationType({
           fields: (t) => ({
             [`delete${tableInfo.name}`]: t.field({
-              type: [`_${tableInfo.name}_`],
+              type: [`${tableInfo.name}_`],
               nullable: false,
               args: {
                 where: t.arg({ type: inputWhere }),
