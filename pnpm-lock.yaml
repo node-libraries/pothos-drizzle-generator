@@ -15,8 +15,8 @@ importers:
         specifier: ^4.10.0
         version: 4.10.0(graphql@16.12.0)
       '@pothos/plugin-drizzle':
-        specifier: ^0.16.0
-        version: 0.16.0(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
+        specifier: ^0.16.1
+        version: 0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
       drizzle-orm:
         specifier: 1.0.0-beta.3-bd1ec83
         version: 1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
@@ -222,8 +222,8 @@ packages:
     peerDependencies:
       graphql: ^16.10.0
 
-  '@pothos/plugin-drizzle@0.16.0':
-    resolution: {integrity: sha512-67MvN4IEUALijvbgNqGv1jvjoWPsOtgXOl+8bhPtQb4gGl8p5icTSy5IfqotBpOE9csbjy8YuVSDoQmt7AEEgA==}
+  '@pothos/plugin-drizzle@0.16.1':
+    resolution: {integrity: sha512-u6eD2OQu9mxUiAWj11nojoEysDUtaVadyfyqrZcWudonx1P6bUcUR/RNsjoi/eyyq2xhk99kRoohL2oXO8DAvA==}
     peerDependencies:
       '@pothos/core': '*'
       drizzle-orm: '>=1.0.0-beta.2'
@@ -1986,7 +1986,7 @@ snapshots:
     dependencies:
       graphql: 16.12.0
 
-  '@pothos/plugin-drizzle@0.16.0(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
+  '@pothos/plugin-drizzle@0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
     dependencies:
       '@pothos/core': 4.10.0(graphql@16.12.0)
       drizzle-orm: 1.0.0-beta.3-bd1ec83(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
