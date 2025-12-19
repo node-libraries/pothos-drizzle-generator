@@ -74,7 +74,7 @@ type ModelData = {
     | undefined;
 };
 
-export class PothosDrizzleGenerator {
+export class DrizzleGenerator {
   enums: Record<string, PothosSchemaTypes.EnumRef<any, any>> = {};
   inputOperators: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> =
     {};
@@ -89,11 +89,15 @@ export class PothosDrizzleGenerator {
     this.builder = builder;
     this.createInputType();
   }
+  getTableConfig() {
+    const drizzleOption = this.builder.options.drizzle;
+    return drizzleOption.getTableConfig as (
+      param: Parameters<typeof getTableConfig>[0] | SchemaEntry
+    ) => ReturnType<typeof getTableConfig>;
+  }
   createTableInfo(): Record<string, ModelData> {
     const options = this.builder.options.pothosDrizzleGenerator;
-    const drizzleOption = this.builder.options.drizzle;
-    const getConfig: typeof getTableConfig =
-      drizzleOption.getTableConfig as typeof getTableConfig;
+    const getConfig = this.getTableConfig();
     const relations = this.getRelations();
     const tables = Object.values(relations)
       .filter((t) => isTable(t.table))

@@ -1,5 +1,5 @@
 import type { SchemaTypes } from "@pothos/core";
-import type { PothosDrizzleGeneratorPlugin } from "./PothosDrizzleGeneratorPlugin.js";
+import type { PothosDrizzleGenerator } from "./PothosDrizzleGenerator.js";
 import type {
   DBQueryConfigColumns,
   GetTableViewFieldSelection,
@@ -15,7 +15,7 @@ declare global {
       Types extends SchemaTypes,
       T extends object = object
     > {
-      pothosDrizzleGenerator: PothosDrizzleGeneratorPlugin<Types, T>;
+      pothosDrizzleGenerator: PothosDrizzleGenerator<Types, T>;
     }
     type Relations<Types extends SchemaTypes> = Types["DrizzleRelations"];
     type TableNames<Types extends SchemaTypes> = keyof Relations<Types>;

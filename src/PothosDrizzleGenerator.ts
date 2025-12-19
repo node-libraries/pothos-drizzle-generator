@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
-import { sql } from "drizzle-orm";
-import { PothosDrizzleGenerator } from "./generator.js";
+import { and, eq, sql } from "drizzle-orm";
+import { DrizzleGenerator } from "./generator.js";
 import { createWhereQuery, getQueryDepth } from "./libs/utils.js";
 import type { GraphQLResolveInfo } from "graphql";
 
-export class PothosDrizzleGeneratorPlugin<
+export class PothosDrizzleGenerator<
   Types extends SchemaTypes,
   T extends object = object
 > extends BasePlugin<Types, T> {
-  generator: PothosDrizzleGenerator;
+  generator: DrizzleGenerator;
 
   constructor(
     buildCache: BuildCache<Types>,
     name: keyof PothosSchemaTypes.Plugins<Types>
   ) {
     super(buildCache, name);
-    this.generator = new PothosDrizzleGenerator(this.builder);
+    this.generator = new DrizzleGenerator(this.builder);
   }
 
   beforeBuild(): void {
@@ -131,34 +131,103 @@ export class PothosDrizzleGeneratorPlugin<
             const operation = "count";
             const { executable, where, operations } = tables[modelName]!;
             if (!operations.includes(operation)) return [];
-
             const inputWhere = generator.getInputWhere(modelName);
-            return [
-              `${relayName}Count`,
-              t.relatedCount(relayName, {
-                args: { where: t.arg({ type: inputWhere }) },
-                where: (args: any, ctx: any) => {
-                  if (
-                    executable?.({
-                      modelName,
-                      ctx,
-                      operation,
-                    }) === false
-                  ) {
-                    throw new Error("No permission");
-                  }
-                  const p = {
-                    where: where?.({ modelName, ctx, operation }),
-                  };
-                  return createWhereQuery(relay.targetTable, {
-                    AND: [structuredClone(args.where), p.where].filter(
-                      (v) => v
-                    ),
-                  } as never);
-                },
-              } as never),
-            ];
+            if (relay.throughTable) {
+              return [
+                `${relayName}Count`,
+                t.field({
+                  type: "Int",
+                  nullable: false,
+                  args: { where: t.arg({ type: inputWhere }) },
+                  extensions: {
+                    pothosDrizzleSelect: (args: any, ctx: any) => {
+                      if (
+                        executable?.({
+                          modelName,
+                          ctx,
+                          operation,
+                        }) === false
+                      ) {
+                        throw new Error("No permission");
+                      }
+                      const p = {
+                        where: where?.({
+                          modelName,
+                          ctx,
+                          operation,
+                        }),
+                      };
+                      return {
+                        columns: {},
+                        extras: {
+                          [`${relayName}Count`]: (table: any) => {
+                            const client: any = generator.getClient(ctx);
+                            return client
+                              .select({ count: sql`count(*)` })
+                              .from(relay.targetTable)
+                              .leftJoin(
+                                relay.throughTable,
+                                and(
+                                  ...relay.targetColumns.map((v, index) =>
+                                    eq(
+                                      relay.through!.target[index]!._.column,
+                                      v
+                                    )
+                                  )
+                                )
+                              )
+                              .where(
+                                and(
+                                  ...relay.sourceColumns.map((v, index) =>
+                                    eq(
+                                      relay.through!.source[index]!._.column,
+                                      table[v.name]
+                                    )
+                                  ),
+                                  createWhereQuery(relay.targetTable, {
+                                    AND: [
+                                      structuredClone(args.where),
+                                      p.where,
+                                    ].filter((v) => v),
+                                  } as never)
+                                )
+                              );
+                          },
+                        },
+                      };
+                    },
+                  },
+                } as never),
+              ];
+            } else {
+              return [
+                `${relayName}Count`,
+                t.relatedCount(relayName, {
+                  args: { where: t.arg({ type: inputWhere }) },
+                  where: (args: any, ctx: any) => {
+                    if (
+                      executable?.({
+                        modelName,
+                        ctx,
+                        operation,
+                      }) === false
+                    ) {
+                      throw new Error("No permission");
+                    }
+                    const p = {
+                      where: where?.({ modelName, ctx, operation }),
+                    };
+                    return createWhereQuery(relay.targetTable, {
+                      AND: [structuredClone(args.where), p.where].filter(
+                        (v) => v
+                      ),
+                    } as never);
+                  },
+                } as never),
+              ];
+            }
           });
+
           return Object.fromEntries([
             ...relayCount,
             ...relayList,
