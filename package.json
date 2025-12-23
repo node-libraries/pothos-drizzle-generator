@@ -1,6 +1,6 @@
 {
   "name": "pothos-drizzle-generator",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "main": "./dist/cjs/index.js",
   "types": "./dist/cjs/index.d.ts",
   "exports": {
@@ -19,7 +19,7 @@
     "@graphql-tools/utils": "^10.11.0",
     "@pothos/core": "^4.10.0",
     "@pothos/plugin-drizzle": "^0.16.1",
-    "drizzle-orm": "1.0.0-beta.3-bd1ec83",
+    "drizzle-orm": "^1.0.0-beta.4-4605abe",
     "graphql": "^16.12.0",
     "graphql-scalars": "^1.25.0"
   },
@@ -32,7 +32,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.0"
+    "typescript-eslint": "^8.50.1"
   },
   "repository": "https://github.com/node-libraries/pothos-drizzle-generator",
   "author": "SoraKumo <info@croud.jp>",

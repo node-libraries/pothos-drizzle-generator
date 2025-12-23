@@ -66,7 +66,7 @@ export const createWhereQuery = (
   table: p.SchemaEntry,
   tree?: OperatorTree
 ): p.SQL | undefined => {
-  if (!tree) return p.and()!;
+  if (!tree) return undefined;
   const result: p.SQL[] = Object.entries(tree)
     .map(([key, value]) => {
       switch (key) {
@@ -87,13 +87,15 @@ export const createWhereQuery = (
           return v ? p.not(v) : undefined;
         }
       }
-      const result = Object.entries(value).map(([k, v]) => {
-        const m = OperatorMap[k as keyof typeof OperatorMap];
-        return (m as (column: p.SQL | p.Column, value: unknown) => p.SQL)(
-          p.getColumns(table)[key],
-          v
-        ) as p.SQL;
-      });
+      const result =
+        typeof value === "object"
+          ? Object.entries(value).map(([k, v]) => {
+              const op = OperatorMap[k as keyof typeof OperatorMap];
+              return (
+                op as (column: p.SQL | p.Column, value: unknown) => p.SQL
+              )(p.getColumns(table)[key], v) as p.SQL;
+            })
+          : [p.eq(p.getColumns(table)[key], value)];
       if (result.length === 1) {
         return result[0] as p.SQL;
       }

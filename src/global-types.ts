@@ -7,7 +7,7 @@ import type {
   SchemaEntry,
 } from "drizzle-orm";
 import type { Operation, OperationBasic } from "./libs/operations.js";
-import type { PgTable, PgUpdateSetSource } from "drizzle-orm/pg-core";
+import type { PgInsertValue, PgTable } from "drizzle-orm/pg-core";
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -85,7 +85,7 @@ declare global {
             modelName: U;
             operation: (typeof OperationBasic)[number];
           }) =>
-            | RelationsFilter<Relations<Types>[U], Relations<Types>>
+            | RelationsFilter<Relations<Types>[any], Relations<Types>>
             | undefined;
           inputFields?: <U extends TableNames<Types>>(params: {
             modelName: U;
@@ -104,10 +104,9 @@ declare global {
             modelName: U;
             operation: (typeof OperationBasic)[number];
           }) =>
-            | PgUpdateSetSource<
-                Relations<Types>[U]["table"] extends PgTable
-                  ? Relations<Types>[U]["table"]
-                  : never
+            | PgInsertValue<
+                AnyTable<Types> extends PgTable ? AnyTable<Types> : never,
+                true
               >
             | undefined;
         };
@@ -166,7 +165,7 @@ declare global {
               modelName: U;
               operation: (typeof OperationBasic)[number];
             }) =>
-              | PgUpdateSetSource<
+              | PgInsertValue<
                   Relations<Types>[U]["table"] extends PgTable<any>
                     ? Relations<Types>[U]["table"]
                     : never

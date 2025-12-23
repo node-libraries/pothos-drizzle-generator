@@ -40,24 +40,6 @@ export class PothosDrizzleGenerator<
         depthLimit,
       },
     ] of Object.entries(tables)) {
-      const objectRef = builder.objectRef(`${tableInfo.name}_`);
-      objectRef.implement({
-        fields: (t) =>
-          Object.fromEntries(
-            columns.map((c) => {
-              return [
-                c.name,
-                t.expose(
-                  c.name as never,
-                  {
-                    type: generator.getDataType(c),
-                    nullable: !c.notNull,
-                  } as never
-                ),
-              ];
-            })
-          ),
-      });
       const filterRelations = Object.entries(relations).filter(
         ([, relay]) => tables[relay.targetTableName]
       );
@@ -438,7 +420,7 @@ export class PothosDrizzleGenerator<
               nullable: false,
               args: { input: t.arg({ type: inputCreate, required: true }) },
               resolve: async (
-                _query: any,
+                query: any,
                 _parent: any,
                 args: any,
                 ctx: any,
@@ -463,6 +445,7 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
+                query({});
                 return (generator.getClient(ctx) as any)
                   .insert(table)
                   .values({ ...args.input, ...p.input })
@@ -481,7 +464,7 @@ export class PothosDrizzleGenerator<
               nullable: false,
               args: { input: t.arg({ type: [inputCreate], required: true }) },
               resolve: async (
-                _query: any,
+                query: any,
                 _parent: any,
                 args: any,
                 ctx: any,
@@ -506,6 +489,8 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
+                if (!args.input.length) return [];
+                query({});
                 return (generator.getClient(ctx) as any)
                   .insert(table)
                   .values(args.input.map((v: any) => ({ ...v, ...p.args })))
@@ -526,7 +511,7 @@ export class PothosDrizzleGenerator<
                 where: t.arg({ type: inputWhere }),
               },
               resolve: async (
-                _query: any,
+                query: any,
                 _parent: any,
                 args: any,
                 ctx: any,
@@ -551,6 +536,7 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
+                query({});
                 return (generator.getClient(ctx) as any)
                   .update(table)
                   .set(args.input)
@@ -570,13 +556,14 @@ export class PothosDrizzleGenerator<
       if (operations.includes("delete")) {
         builder.mutationType({
           fields: (t) => ({
-            [`delete${tableInfo.name}`]: t.field({
-              type: [`${tableInfo.name}_`],
+            [`delete${tableInfo.name}`]: t.drizzleField({
+              type: [modelName],
               nullable: false,
               args: {
                 where: t.arg({ type: inputWhere }),
               },
               resolve: async (
+                query: any,
                 _parent: any,
                 args: any,
                 ctx: any,
@@ -601,6 +588,7 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
+                query({});
                 return (generator.getClient(ctx) as any)
                   .delete(table)
                   .where(
