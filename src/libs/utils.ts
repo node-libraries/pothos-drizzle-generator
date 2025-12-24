@@ -1,4 +1,3 @@
-import { collectFields } from "@graphql-tools/utils";
 import * as p from "drizzle-orm";
 import type { GraphQLResolveInfo, FieldNode, SelectionNode } from "graphql";
 
@@ -7,7 +6,6 @@ function getDepthFromSelection(
   currentDepth: number
 ): number {
   if (selection.kind === "Field" && selection.selectionSet) {
-    // 子フィールドがある場合はさらに深さを加算
     const childDepths = selection.selectionSet.selections.map((sel) =>
       getDepthFromSelection(sel, currentDepth + 1)
     );
@@ -21,19 +19,42 @@ export function getQueryDepth(info: GraphQLResolveInfo): number {
   return getDepthFromSelection(info.fieldNodes[0], 0);
 }
 
-export const getQueryFields = (info: GraphQLResolveInfo) => {
-  if (!info.fieldNodes[0]) return {};
-  return Object.fromEntries(
-    Array.from(
-      collectFields(
-        info.schema,
-        info.fragments,
-        info.variableValues,
-        {} as never,
-        info.fieldNodes[0].selectionSet!
-      ).fields.keys()
-    ).map((v) => [v, true])
-  );
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface FieldTree extends Record<string, boolean | FieldTree> {}
+
+export const getQueryFragment = (
+  info: GraphQLResolveInfo,
+  selectFields: FieldTree,
+  field: SelectionNode
+) => {
+  if (field.kind === "FragmentSpread") {
+    const fragment = info.fragments[field.name.value];
+    fragment?.selectionSet.selections.forEach((selection) => {
+      getQueryFragment(info, selectFields, selection);
+    });
+  } else if (field.kind === "Field") {
+    if (field.selectionSet?.selections.length) {
+      selectFields[field.name.value] = getQueryFields(info, [field]);
+    } else {
+      selectFields[field.name.value] = true;
+    }
+  }
+};
+
+export const getQueryFields = (
+  info: GraphQLResolveInfo,
+  fieldNodes?: FieldNode[]
+) => {
+  const selectFields: FieldTree = {};
+
+  for (const fieldNode of fieldNodes ?? info.fieldNodes) {
+    if (fieldNode.selectionSet) {
+      for (const field of fieldNode.selectionSet.selections) {
+        getQueryFragment(info, selectFields, field);
+      }
+    }
+  }
+  return selectFields;
 };
 
 const OperatorMap = {

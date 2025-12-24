@@ -14,7 +14,11 @@ import {
   JSONResolver,
 } from "graphql-scalars";
 import { expandOperations, OperationBasic } from "./libs/operations.js";
-import { createInputOperator } from "./libs/utils.js";
+import {
+  createInputOperator,
+  getQueryFields,
+  type FieldTree,
+} from "./libs/utils.js";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
 import type {
   PgArray,
@@ -22,11 +26,13 @@ import type {
   PgTable,
   getTableConfig,
 } from "drizzle-orm/pg-core";
+import type { GraphQLResolveInfo } from "graphql";
 
 type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
   columns: PgColumn<any, object>[];
+  primaryColumns: PgColumn<any, object>[];
   inputColumns: PgColumn<any, object>[];
   tableInfo: ReturnType<typeof getTableConfig>;
   relations: RelationsRecord;
@@ -74,6 +80,12 @@ type ModelData = {
     | undefined;
 };
 
+interface QueryDataType {
+  columns?: Record<string, boolean>;
+  with?: Record<string, QueryDataType>;
+  _name?: string;
+}
+
 export class DrizzleGenerator {
   enums: Record<string, PothosSchemaTypes.EnumRef<any, any>> = {};
   inputOperators: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> =
@@ -106,6 +118,13 @@ export class DrizzleGenerator {
         const allOptions = options?.all;
         const modelOptions = options?.models?.[modelName];
         const columns = tableInfo.columns;
+        const primaryColumns = Array.from(
+          new Set([
+            ...tableInfo.primaryKeys.flatMap((v) => v.columns),
+            ...columns.filter((v) => v.primary),
+          ])
+        );
+
         //Operations
         const operationValue = (
           modelOptions?.operations ?? allOptions?.operations
@@ -141,6 +160,7 @@ export class DrizzleGenerator {
           {
             table,
             columns: columns.filter((c) => filterColumns.includes(c.name)),
+            primaryColumns,
             operations,
             inputColumns: columns.filter((c) =>
               filterInputColumns.includes(c.name)
@@ -339,3 +359,53 @@ export class DrizzleGenerator {
     return isArray ? [result] : result;
   }
 }
+
+export const replaceColumnValues = (
+  tables: Record<string, ModelData>,
+  tableName: string,
+  tree: FieldTree,
+  queryData: {
+    columns?: Record<string, boolean>;
+    with?: Record<string, QueryDataType>;
+    _name?: string;
+  }
+) => {
+  const info = tables[tableName]!;
+  const columns = info?.columns;
+  if (columns) {
+    queryData.columns = Object.fromEntries(
+      Object.entries(tree).flatMap(([name, value]) =>
+        value === true && columns.find((v) => v.name === name)
+          ? [[name, true]]
+          : []
+      )
+    );
+  }
+  if (queryData.with) {
+    Object.entries(queryData.with).forEach(([name, query]) => {
+      if (typeof tree[name] === "object") {
+        replaceColumnValues(
+          tables,
+          (query as { _name: string })._name,
+          tree[name],
+          query
+        );
+      }
+    });
+  }
+  return queryData;
+};
+
+export const getReturning = (
+  info: GraphQLResolveInfo,
+  columns: PgColumn<any, object>[]
+) => {
+  const fields = getQueryFields(info);
+  const returnFields = columns
+    .filter((v) => fields[v.name])
+    .map((v) => [v.name, v]);
+  if (!returnFields.length) return undefined;
+  return Object.fromEntries(
+    columns.filter((v) => fields[v.name]).map((v) => [v.name, v])
+  );
+};

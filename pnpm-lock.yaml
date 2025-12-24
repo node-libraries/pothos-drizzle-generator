@@ -16,10 +16,10 @@ importers:
         version: 4.10.0(graphql@16.12.0)
       '@pothos/plugin-drizzle':
         specifier: ^0.16.1
-        version: 0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.4-4605abe(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
+        version: 0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
       drizzle-orm:
-        specifier: 1.0.0-beta.4-4605abe
-        version: 1.0.0-beta.4-4605abe(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+        specifier: 1.0.0-beta.5-0a7601e
+        version: 1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       graphql:
         specifier: ^16.12.0
         version: 16.12.0
@@ -629,8 +629,8 @@ packages:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
 
-  drizzle-orm@1.0.0-beta.4-4605abe:
-    resolution: {integrity: sha512-f93Ssudgsg+acRJtWylkPir/ZMPBo8GuIFC1K3fmsrRxSd/QOToHos0RdnZ3No5Y/1wq9nwh7eubhg9cCaG4eg==}
+  drizzle-orm@1.0.0-beta.5-0a7601e:
+    resolution: {integrity: sha512-IgQsfcLYJ2Lxc/BPXJyG5BrC1jVvvjNUJyezxNKxjkp1PrGfQ1MH7llpWseDBq0xZRUJ6D+p8Txk5GH13GJDdg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -1986,10 +1986,10 @@ snapshots:
     dependencies:
       graphql: 16.12.0
 
-  '@pothos/plugin-drizzle@0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.4-4605abe(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
+  '@pothos/plugin-drizzle@0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
     dependencies:
       '@pothos/core': 4.10.0(graphql@16.12.0)
-      drizzle-orm: 1.0.0-beta.4-4605abe(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+      drizzle-orm: 1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       graphql: 16.12.0
 
   '@rtsao/scc@1.1.0': {}
@@ -2430,7 +2430,7 @@ snapshots:
     dependencies:
       esutils: 2.0.3
 
-  drizzle-orm@1.0.0-beta.4-4605abe(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
+  drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
     dependencies:
       '@types/mssql': 9.1.8
       mssql: 11.0.1

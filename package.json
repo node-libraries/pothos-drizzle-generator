@@ -1,6 +1,6 @@
 {
   "name": "pothos-drizzle-generator",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "main": "./dist/cjs/index.js",
   "types": "./dist/cjs/index.d.ts",
   "exports": {
@@ -19,7 +19,7 @@
     "@graphql-tools/utils": "^10.11.0",
     "@pothos/core": "^4.10.0",
     "@pothos/plugin-drizzle": "^0.16.1",
-    "drizzle-orm": "^1.0.0-beta.4-4605abe",
+    "drizzle-orm": "1.0.0-beta.5-0a7601e",
     "graphql": "^16.12.0",
     "graphql-scalars": "^1.25.0"
   },
