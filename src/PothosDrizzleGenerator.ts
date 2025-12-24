@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BasePlugin, type BuildCache, type SchemaTypes } from "@pothos/core";
 import { and, eq, sql } from "drizzle-orm";
 import {
@@ -12,13 +11,16 @@ import {
   getQueryFields,
 } from "./libs/utils.js";
 import type { DrizzleObjectRef } from "@pothos/plugin-drizzle";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PgTable } from "drizzle-orm/pg-core";
+import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
 export class PothosDrizzleGenerator<
   Types extends SchemaTypes,
   T extends object = object
 > extends BasePlugin<Types, T> {
-  generator: DrizzleGenerator;
+  generator: DrizzleGenerator<Types>;
 
   constructor(
     buildCache: BuildCache<Types>,
@@ -33,7 +35,7 @@ export class PothosDrizzleGenerator<
 
     const builder = this.builder;
     const tables = generator.getTables();
-    const modelObjects: Record<string, DrizzleObjectRef<any>> = {};
+    const modelObjects: Record<string, DrizzleObjectRef<Types>> = {};
     for (const [
       modelName,
       {
@@ -82,7 +84,7 @@ export class PothosDrizzleGenerator<
                     limit?: number;
                     orderBy?: object;
                   },
-                  ctx: any
+                  ctx: object
                 ) => {
                   if (
                     executable?.({
@@ -93,7 +95,6 @@ export class PothosDrizzleGenerator<
                   ) {
                     throw new Error("No permission");
                   }
-                  //  const requestColumns = getQueryFields(info);
                   const p = {
                     limit: limit?.({ modelName, ctx, operation }),
                     where: where?.({ modelName, ctx, operation }),
@@ -134,7 +135,10 @@ export class PothosDrizzleGenerator<
                   nullable: false,
                   args: { where: t.arg({ type: inputWhere }) },
                   extensions: {
-                    pothosDrizzleSelect: (args: any, ctx: any) => {
+                    pothosDrizzleSelect: (
+                      args: { where?: object },
+                      ctx: object
+                    ) => {
                       if (
                         executable?.({
                           modelName,
@@ -154,13 +158,14 @@ export class PothosDrizzleGenerator<
                       return {
                         columns: {},
                         extras: {
-                          [`${relayName}Count`]: (table: any) => {
-                            const client: any = generator.getClient(ctx);
+                          [`${relayName}Count`]: (table: PgTable) => {
+                            const client: NodePgDatabase =
+                              generator.getClient(ctx);
                             return client
                               .select({ count: sql`count(*)` })
-                              .from(relay.targetTable)
+                              .from(relay.targetTable as never)
                               .leftJoin(
-                                relay.throughTable,
+                                relay.throughTable as never,
                                 and(
                                   ...relay.targetColumns.map((v, index) =>
                                     eq(
@@ -175,7 +180,7 @@ export class PothosDrizzleGenerator<
                                   ...relay.sourceColumns.map((v, index) =>
                                     eq(
                                       relay.through!.source[index]!._.column,
-                                      table[v.name]
+                                      table[v.name as keyof typeof table]
                                     )
                                   ),
                                   createWhereQuery(relay.targetTable, {
@@ -198,7 +203,10 @@ export class PothosDrizzleGenerator<
                 `${relayName}Count`,
                 t.relatedCount(relayName, {
                   args: { where: t.arg({ type: inputWhere }) },
-                  where: (args: any, ctx: any) => {
+                  where: (
+                    args: { limit?: number; where?: object },
+                    ctx: object
+                  ) => {
                     if (
                       executable?.({
                         modelName,
@@ -255,10 +263,10 @@ export class PothosDrizzleGenerator<
                 orderBy: t.arg({ type: inputOrderBy }),
               },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => object,
+                _parent: unknown,
+                args: { limit?: number; where: object; orderBy?: object },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "findMany";
@@ -283,9 +291,7 @@ export class PothosDrizzleGenerator<
                 )
                   throw new Error("Depth limit exceeded");
 
-                return (generator.getClient(ctx) as any).query[
-                  modelName
-                ].findMany(
+                return generator.getQueryTable(ctx, modelName).findMany(
                   replaceColumnValues(
                     tables,
                     modelName,
@@ -306,7 +312,7 @@ export class PothosDrizzleGenerator<
                           ? args.orderBy
                           : p.orderBy,
                     })
-                  )
+                  ) as never
                 );
               },
             } as never),
@@ -324,10 +330,15 @@ export class PothosDrizzleGenerator<
                 orderBy: t.arg({ type: inputOrderBy }),
               },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => object,
+                _parent: unknown,
+                args: {
+                  limit?: number;
+                  where: object;
+                  orderBy?: object;
+                  offset?: number;
+                },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "findFirst";
@@ -350,9 +361,7 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
-                return (generator.getClient(ctx) as any).query[
-                  modelName
-                ].findFirst(
+                return generator.getQueryTable(ctx, modelName).findFirst(
                   replaceColumnValues(
                     tables,
                     modelName,
@@ -369,7 +378,7 @@ export class PothosDrizzleGenerator<
                           ? args.orderBy
                           : p.orderBy,
                     })
-                  )
+                  ) as never
                 );
               },
             } as never),
@@ -387,10 +396,9 @@ export class PothosDrizzleGenerator<
                 where: t.arg({ type: inputWhere }),
               },
               resolve: async (
-                _query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                _parent: unknown,
+                args: { limit?: number; where?: object },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "count";
@@ -403,9 +411,9 @@ export class PothosDrizzleGenerator<
                 ) {
                   throw new Error("No permission");
                 }
+
                 const p = {
                   depthLimit: depthLimit?.({ modelName, ctx, operation }),
-                  limit: limit?.({ modelName, ctx, operation }),
                   where: where?.({ modelName, ctx, operation }),
                 };
                 if (
@@ -413,22 +421,22 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
-                return (generator.getClient(ctx) as any).query[modelName]
+                return (
+                  generator.getClient(ctx).query[
+                    modelName as never
+                  ] as RelationalQueryBuilder<never, never>
+                )
                   .findFirst({
                     columns: {},
-                    extras: { _count: () => sql`count(*)` },
+                    extras: { _count: () => sql`count(*) ` },
                     ...args,
-                    limit:
-                      p.limit && args.limit
-                        ? Math.min(p.limit, args.limit)
-                        : p.limit ?? args.limit,
                     where: {
                       AND: [structuredClone(args.where), p.where].filter(
                         (v) => v
                       ),
                     },
-                  })
-                  .then((v: any) => v._count);
+                  } as never)
+                  .then((v: unknown) => (v as { _count: number })._count);
               },
             } as never),
           }),
@@ -442,10 +450,10 @@ export class PothosDrizzleGenerator<
               nullable: false,
               args: { input: t.arg({ type: inputCreate, required: true }) },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => unknown,
+                _parent: unknown,
+                args: { input: object },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "createOne";
@@ -470,13 +478,15 @@ export class PothosDrizzleGenerator<
                 query({});
                 const returning = getReturning(info, columns);
                 return returning
-                  ? (generator.getClient(ctx) as any)
-                      .insert(table)
+                  ? generator
+                      .getClient(ctx)
+                      .insert(table as never)
                       .values({ ...args.input, ...p.input })
                       .returning(returning)
-                      .then((v: any) => v[0])
-                  : (generator.getClient(ctx) as any)
-                      .insert(table)
+                      .then((v: object[]) => v[0])
+                  : generator
+                      .getClient(ctx)
+                      .insert(table as never)
                       .values({ ...args.input, ...p.input })
                       .then(() => ({}));
               },
@@ -492,10 +502,10 @@ export class PothosDrizzleGenerator<
               nullable: false,
               args: { input: t.arg({ type: [inputCreate], required: true }) },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => object,
+                _parent: unknown,
+                args: { input: object[] },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "createMany";
@@ -521,16 +531,16 @@ export class PothosDrizzleGenerator<
                 query({});
                 const returning = getReturning(info, columns);
                 return returning
-                  ? (generator.getClient(ctx) as any)
-                      .insert(table)
-                      .values(args.input.map((v: any) => ({ ...v, ...p.args })))
+                  ? generator
+                      .getClient(ctx)
+                      .insert(table as never)
+                      .values(args.input.map((v) => ({ ...v, ...p.args })))
                       .returning(returning)
-                  : (generator.getClient(ctx) as any)
-                      .insert(table)
-                      .values(args.input.map((v: any) => ({ ...v, ...p.args })))
-                      .then((v: { rowCount: number }) =>
-                        Array(v.rowCount).fill({})
-                      );
+                  : generator
+                      .getClient(ctx)
+                      .insert(table as never)
+                      .values(args.input.map((v) => ({ ...v, ...p.args })))
+                      .then((v) => Array(v.rowCount ?? 0).fill({}));
               },
             } as never),
           }),
@@ -547,10 +557,13 @@ export class PothosDrizzleGenerator<
                 where: t.arg({ type: inputWhere }),
               },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => object,
+                _parent: unknown,
+                args: {
+                  input: object;
+                  where?: object;
+                },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "update";
@@ -575,8 +588,9 @@ export class PothosDrizzleGenerator<
                 query({});
                 const returning = getReturning(info, columns);
                 return returning
-                  ? (generator.getClient(ctx) as any)
-                      .update(table)
+                  ? generator
+                      .getClient(ctx)
+                      .update(table as never)
                       .set(args.input)
                       .where(
                         createWhereQuery(table, {
@@ -586,8 +600,9 @@ export class PothosDrizzleGenerator<
                         } as never)
                       )
                       .returning(returning)
-                  : (generator.getClient(ctx) as any)
-                      .update(table)
+                  : generator
+                      .getClient(ctx)
+                      .update(table as never)
                       .set(args.input)
                       .where(
                         createWhereQuery(table, {
@@ -596,9 +611,7 @@ export class PothosDrizzleGenerator<
                           ),
                         } as never)
                       )
-                      .then((v: { rowCount: number }) =>
-                        Array(v.rowCount).fill({})
-                      );
+                      .then((v) => Array(v.rowCount ?? 0).fill({}));
               },
             } as never),
           }),
@@ -614,10 +627,10 @@ export class PothosDrizzleGenerator<
                 where: t.arg({ type: inputWhere }),
               },
               resolve: async (
-                query: any,
-                _parent: any,
-                args: any,
-                ctx: any,
+                query: (selection: unknown) => object,
+                _parent: unknown,
+                args: { where?: object },
+                ctx: object,
                 info: GraphQLResolveInfo
               ) => {
                 const operation = "delete";
@@ -642,8 +655,9 @@ export class PothosDrizzleGenerator<
                 query({});
                 const returning = getReturning(info, columns);
                 return returning
-                  ? (generator.getClient(ctx) as any)
-                      .delete(table)
+                  ? generator
+                      .getClient(ctx)
+                      .delete(table as never)
                       .where(
                         createWhereQuery(table, {
                           AND: [structuredClone(args.where), p.where].filter(
@@ -652,8 +666,9 @@ export class PothosDrizzleGenerator<
                         } as never)
                       )
                       .returning(returning)
-                  : (generator.getClient(ctx) as any)
-                      .delete(table)
+                  : generator
+                      .getClient(ctx)
+                      .delete(table as never)
                       .where(
                         createWhereQuery(table, {
                           AND: [structuredClone(args.where), p.where].filter(
@@ -661,9 +676,7 @@ export class PothosDrizzleGenerator<
                           ),
                         } as never)
                       )
-                      .then((v: { rowCount: number }) =>
-                        Array(v.rowCount).fill({})
-                      );
+                      .then((v) => Array(v.rowCount ?? 0).fill({}));
               },
             } as never),
           }),

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   isTable,
+  sql,
   type AnyRelations,
   type RelationsRecord,
   type SchemaEntry,
@@ -19,61 +19,64 @@ import {
   getQueryFields,
   type FieldTree,
 } from "./libs/utils.js";
+import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type {
   PgArray,
   PgColumn,
   PgTable,
   getTableConfig,
 } from "drizzle-orm/pg-core";
+import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
 type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
-  columns: PgColumn<any, object>[];
-  primaryColumns: PgColumn<any, object>[];
-  inputColumns: PgColumn<any, object>[];
+  columns: PgColumn[];
+  primaryColumns: PgColumn[];
+  inputColumns: PgColumn[];
   tableInfo: ReturnType<typeof getTableConfig>;
   relations: RelationsRecord;
   executable?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => boolean | undefined)
     | undefined;
   limit?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => number | undefined)
     | undefined;
   orderBy?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => object | undefined)
     | undefined;
   where?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => object | undefined)
     | undefined;
   inputData?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => object | undefined)
     | undefined;
   depthLimit?:
     | ((params: {
-        ctx: any;
+        ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
       }) => number | undefined)
@@ -86,18 +89,20 @@ interface QueryDataType {
   _name?: string;
 }
 
-export class DrizzleGenerator {
-  enums: Record<string, PothosSchemaTypes.EnumRef<any, any>> = {};
-  inputOperators: Record<string, PothosSchemaTypes.InputObjectRef<any, any>> =
-    {};
+export class DrizzleGenerator<Types extends SchemaTypes> {
+  enums: Record<string, PothosSchemaTypes.EnumRef<Types, unknown>> = {};
+  inputOperators: Record<
+    string,
+    PothosSchemaTypes.InputObjectRef<Types, unknown>
+  > = {};
   inputType: Record<
     string,
-    Record<string, PothosSchemaTypes.InputObjectRef<any, any>>
+    Record<string, PothosSchemaTypes.InputObjectRef<Types, unknown>>
   > = {};
   tables?: Record<string, ModelData>;
 
-  builder: PothosSchemaTypes.SchemaBuilder<any>;
-  constructor(builder: PothosSchemaTypes.SchemaBuilder<any>) {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
     this.builder = builder;
     this.createInputType();
   }
@@ -185,14 +190,19 @@ export class DrizzleGenerator {
       tables.filter(([name]) => filterTables.includes(name))
     );
   }
-  getClient(ctx: any) {
+  getClient(ctx: object) {
     const options = this.builder.options;
     const drizzleOption = options.drizzle;
     const client =
       drizzleOption.client instanceof Function
         ? drizzleOption.client(ctx)
         : drizzleOption.client;
-    return client;
+    return client as NodePgDatabase;
+  }
+  getQueryTable(ctx: object, modelName: string) {
+    return this.getClient(ctx).query[
+      modelName as never
+    ] as RelationalQueryBuilder<never, never>;
   }
   getRelations(): AnyRelations {
     const drizzleOption = this.builder.options.drizzle;
@@ -208,6 +218,7 @@ export class DrizzleGenerator {
   getInputType(
     modelName: string,
     type: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: PothosSchemaTypes.InputObjectTypeOptions<any, any>
   ) {
     if (!this.inputType[modelName]) this.inputType[modelName] = {};
@@ -296,7 +307,7 @@ export class DrizzleGenerator {
     return input;
   }
   createInputType() {
-    const builder: PothosSchemaTypes.SchemaBuilder<any> = this.builder;
+    const builder: PothosSchemaTypes.SchemaBuilder<Types> = this.builder;
 
     const scalars = [
       ["BigInt", BigIntResolver],
@@ -321,6 +332,7 @@ export class DrizzleGenerator {
   }
   getDataType(column: PgColumn): string | [string] {
     const isArray = column.dataType.split(" ")[0] === "array";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const c = isArray ? (column as PgArray<any, any>).baseColumn : column;
     const types = c.dataType.split(" ");
 
@@ -370,6 +382,12 @@ export const replaceColumnValues = (
     _name?: string;
   }
 ) => {
+  if (Object.keys(tree).every((v) => v === "__typename")) {
+    return {
+      columns: {},
+      extras: { _: sql`0` },
+    };
+  }
   const info = tables[tableName]!;
   const columns = info?.columns;
   if (columns) {
@@ -396,10 +414,7 @@ export const replaceColumnValues = (
   return queryData;
 };
 
-export const getReturning = (
-  info: GraphQLResolveInfo,
-  columns: PgColumn<any, object>[]
-) => {
+export const getReturning = (info: GraphQLResolveInfo, columns: PgColumn[]) => {
   const fields = getQueryFields(info);
   const returnFields = columns
     .filter((v) => fields[v.name])
