@@ -75,14 +75,14 @@ export class PothosDrizzleGenerator<
                   offset: t.arg({ type: "Int" }),
                   limit: t.arg({ type: "Int" }),
                   where: t.arg({ type: inputWhere }),
-                  orderBy: t.arg({ type: inputOrderBy }),
+                  orderBy: t.arg({ type: [inputOrderBy] }),
                 },
                 query: (
                   args: {
                     where?: object;
                     offset?: number;
                     limit?: number;
-                    orderBy?: object;
+                    orderBy?: object[];
                   },
                   ctx: object
                 ) => {
@@ -114,7 +114,9 @@ export class PothosDrizzleGenerator<
                     },
                     orderBy:
                       args.orderBy && Object.keys(args.orderBy).length
-                        ? args.orderBy
+                        ? Object.fromEntries(
+                            args.orderBy.flatMap((v) => Object.entries(v))
+                          )
                         : p.orderBy,
                   };
                 },
@@ -260,12 +262,12 @@ export class PothosDrizzleGenerator<
                 offset: t.arg({ type: "Int" }),
                 limit: t.arg({ type: "Int" }),
                 where: t.arg({ type: inputWhere }),
-                orderBy: t.arg({ type: inputOrderBy }),
+                orderBy: t.arg({ type: [inputOrderBy] }),
               },
               resolve: async (
                 query: (selection: unknown) => object,
                 _parent: unknown,
-                args: { limit?: number; where: object; orderBy?: object },
+                args: { limit?: number; where: object; orderBy?: object[] },
                 ctx: object,
                 info: GraphQLResolveInfo
               ) => {
@@ -309,7 +311,9 @@ export class PothosDrizzleGenerator<
                       },
                       orderBy:
                         args.orderBy && Object.keys(args.orderBy).length
-                          ? args.orderBy
+                          ? Object.fromEntries(
+                              args.orderBy.flatMap((v) => Object.entries(v))
+                            )
                           : p.orderBy,
                     })
                   ) as never
@@ -327,7 +331,7 @@ export class PothosDrizzleGenerator<
               args: {
                 offset: t.arg({ type: "Int" }),
                 where: t.arg({ type: inputWhere }),
-                orderBy: t.arg({ type: inputOrderBy }),
+                orderBy: t.arg({ type: [inputOrderBy] }),
               },
               resolve: async (
                 query: (selection: unknown) => object,
@@ -335,7 +339,7 @@ export class PothosDrizzleGenerator<
                 args: {
                   limit?: number;
                   where: object;
-                  orderBy?: object;
+                  orderBy?: object[];
                   offset?: number;
                 },
                 ctx: object,
@@ -375,7 +379,9 @@ export class PothosDrizzleGenerator<
                       },
                       orderBy:
                         args.orderBy && Object.keys(args.orderBy).length
-                          ? args.orderBy
+                          ? Object.fromEntries(
+                              args.orderBy.flatMap((v) => Object.entries(v))
+                            )
                           : p.orderBy,
                     })
                   ) as never

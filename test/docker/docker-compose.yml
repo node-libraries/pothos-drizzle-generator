@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+  postgres:
+    container_name: drizzle-test-postgres
+    image: postgres:alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - drizzle-test-postgres-vol:/var/lib/postgresql/data
+    ports:
+      - "45432:5432"
+volumes:
+  drizzle-test-postgres-vol:

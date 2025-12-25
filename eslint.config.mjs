@@ -8,7 +8,7 @@ export default [
   ...tslint.configs.recommended,
   eslintConfigPrettier,
   {
-    ignores: ["**/global-types.ts"],
+    // ignores: ["**/global-types.ts"],
   },
   {
     plugins: {
@@ -16,9 +16,6 @@ export default [
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "warn",
-      "no-empty-pattern": 0,
-      "no-empty": 0,
-
       "import/order": [
         "warn",
         {

@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`array sorting > sorts array in ascending order by user name 1`] = `
+[
+  "Agripina",
+  "Alpheus",
+  "Candy",
+  "Duron",
+  "Ilse",
+  "Laylani",
+  "Noami",
+  "Ritvik",
+  "Rya",
+  "Verla",
+]
+`;
+
+exports[`array sorting > sorts array in descending order by user name 1`] = `
+[
+  [
+    "d1c010d6-c420-448d-6503-8c403c0022d6",
+    "Verla",
+  ],
+  [
+    "ab2f7431-0e7a-4ebf-def0-728a4e5a8f59",
+    "Rya",
+  ],
+  [
+    "c7a9f02f-7400-4aba-4b7e-bc8d57b81f6f",
+    "Ritvik",
+  ],
+  [
+    "e10d947c-7079-41af-8776-6322dd2e112f",
+    "Noami",
+  ],
+  [
+    "3b23d30c-f359-42bd-0656-eaf4561a9cd0",
+    "Laylani",
+  ],
+  [
+    "9b011521-caa0-4d21-d936-38344a1c6e52",
+    "Ilse",
+  ],
+  [
+    "72a4319b-5442-4aa6-83ee-52dca5b34731",
+    "Duron",
+  ],
+  [
+    "2f5363b9-8fc3-482a-da6b-2d605fb782f1",
+    "Candy",
+  ],
+  [
+    "d6c5a7cc-2aa3-4fd7-e2d9-1ff91a3b254d",
+    "Alpheus",
+  ],
+  [
+    "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+    "Agripina",
+  ],
+]
+`;
