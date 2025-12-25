@@ -2,14 +2,18 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "target": "ESNext",
-    "outDir": "dist",
+    "declaration": true,
+    "outDir": "./dist/cjs",
     "module": "CommonJS",
     "rootDir": "./src",
     "moduleResolution": "node",
     "isolatedModules": true,
     "esModuleInterop": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noUncheckedIndexedAccess": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "skipLibCheck": true
   }
 }
