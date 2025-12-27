@@ -415,12 +415,20 @@ export const replaceColumnValues = (
 };
 
 export const getReturning = (info: GraphQLResolveInfo, columns: PgColumn[]) => {
-  const fields = getQueryFields(info);
-  const returnFields = columns
-    .filter((v) => fields[v.name])
-    .map((v) => [v.name, v]);
-  if (!returnFields.length) return undefined;
-  return Object.fromEntries(
-    columns.filter((v) => fields[v.name]).map((v) => [v.name, v])
+  const queryFields = getQueryFields(info);
+  const isRelay = Object.keys(queryFields).some(
+    (v) => !columns.find((c) => c.name === v)
   );
+  const returnFields = columns
+    .filter((v) => queryFields[v.name])
+    .map((v) => [v.name, v]);
+  if (!returnFields.length)
+    return { isRelay, queryFields, returning: undefined };
+  return {
+    isRelay,
+    queryFields,
+    returning: Object.fromEntries(
+      columns.filter((v) => queryFields[v.name]).map((v) => [v.name, v])
+    ),
+  };
 };

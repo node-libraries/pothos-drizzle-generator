@@ -16,10 +16,10 @@ importers:
         version: 4.10.0(graphql@16.12.0)
       '@pothos/plugin-drizzle':
         specifier: ^0.16.1
-        version: 0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
+        version: 0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)
       drizzle-orm:
-        specifier: 1.0.0-beta.5-0a7601e
-        version: 1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+        specifier: 1.0.0-beta.6-4414a19
+        version: 1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       graphql:
         specifier: ^16.12.0
         version: 16.12.0
@@ -32,10 +32,10 @@ importers:
         version: 9.39.2
       '@hono/graphql-server':
         specifier: ^0.7.0
-        version: 0.7.0(hono@4.11.1)
+        version: 0.7.0(hono@4.11.3)
       '@hono/node-server':
         specifier: 1.19.7
-        version: 1.19.7(hono@4.11.1)
+        version: 1.19.7(hono@4.11.3)
       '@types/graphql':
         specifier: ^14.5.0
         version: 14.5.0
@@ -52,11 +52,11 @@ importers:
         specifier: 17.2.3
         version: 17.2.3
       drizzle-kit:
-        specifier: 1.0.0-beta.5-0a7601e
-        version: 1.0.0-beta.5-0a7601e
+        specifier: 1.0.0-beta.6-4414a19
+        version: 1.0.0-beta.6-4414a19
       drizzle-seed:
-        specifier: 1.0.0-beta.5-0a7601e
-        version: 1.0.0-beta.5-0a7601e(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))
+        specifier: 1.0.0-beta.6-4414a19
+        version: 1.0.0-beta.6-4414a19(drizzle-orm@1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))
       eslint:
         specifier: ^9.39.2
         version: 9.39.2
@@ -73,8 +73,11 @@ importers:
         specifier: 1.0.4
         version: 1.0.4
       hono:
-        specifier: ^4.11.1
-        version: 4.11.1
+        specifier: ^4.11.3
+        version: 4.11.3
+      jest-date-mock:
+        specifier: 1.0.10
+        version: 1.0.10
       jose:
         specifier: 6.1.3
         version: 6.1.3
@@ -1180,12 +1183,12 @@ packages:
     resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
 
-  drizzle-kit@1.0.0-beta.5-0a7601e:
-    resolution: {integrity: sha512-2PYLBFRVWJEVvzuDXprPgB//ppJ3WFRjmoXtmfHy5q3YLtRBtKf+zu7ztEu+H/r5lgWhimiJf4oXMVq9nsNUpw==}
+  drizzle-kit@1.0.0-beta.6-4414a19:
+    resolution: {integrity: sha512-tecGaCXKWVLIkE9f+rucGPovx8ALRFS0lvgUKWoXXLFTLpkmgc/iuN0cpJAalFiJK7bdQemMMRjF9hsCEcmphA==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.5-0a7601e:
-    resolution: {integrity: sha512-IgQsfcLYJ2Lxc/BPXJyG5BrC1jVvvjNUJyezxNKxjkp1PrGfQ1MH7llpWseDBq0xZRUJ6D+p8Txk5GH13GJDdg==}
+  drizzle-orm@1.0.0-beta.6-4414a19:
+    resolution: {integrity: sha512-UGpd61ZVeo1Myz0qzdRIpJoRMTzju6y2S25OTI5/nf6mdyAounZbqsoQtAkfms6wv9LLwOCnTtGhlskkgSfjcw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -1284,8 +1287,8 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-seed@1.0.0-beta.5-0a7601e:
-    resolution: {integrity: sha512-NXPzawCtF6lvGdQIaS1xeB29CeZFQpluXsDAetSjCYOlx6HuIwJ9vutjU3kG7uHI5bBpnLYRQu4hBed8MtPFYA==}
+  drizzle-seed@1.0.0-beta.6-4414a19:
+    resolution: {integrity: sha512-UhLkgePR6uFZZJVV5nHC3jAx12Ms2XT6gYYIL75Z8D9ssRC8ngtDsP6XpSTp9lPtJzrkkNnr3WpYyevlamPEBQ==}
     peerDependencies:
       drizzle-orm: '>=1.0.0-beta.2'
 
@@ -1619,8 +1622,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.11.1:
-    resolution: {integrity: sha512-KsFcH0xxHes0J4zaQgWbYwmz3UPOOskdqZmItstUG93+Wk1ePBLkLGwbP9zlmh1BFUiL8Qp+Xfu9P7feJWpGNg==}
+  hono@4.11.3:
+    resolution: {integrity: sha512-PmQi306+M/ct/m5s66Hrg+adPnkD5jiO6IjA7WhWw0gSBSo1EcRegwuI1deZ+wd5pzCGynCcn2DprnE4/yEV4w==}
     engines: {node: '>=16.9.0'}
 
   http-proxy-agent@7.0.2:
@@ -1787,6 +1790,9 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  jest-date-mock@1.0.10:
+    resolution: {integrity: sha512-g0CM7mJHppz8SCayrtJ0Wm2ge8T0SiKCR9bmVLeflipqWjZ8hieNk6vBF0t3dJFc5jlsjvzTbRud8kPjoD0VgA==}
 
   jose@6.1.3:
     resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
@@ -2288,8 +2294,8 @@ packages:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
 
-  ts-api-utils@2.1.0:
-    resolution: {integrity: sha512-CUgTZL1irw8u29bzrOD/nH85jqyc74D6SshFgujOIA7osm2Rz7dYH77agkx7H4FBNxDq7Cjf+IjaX/8zwFW+ZQ==}
+  ts-api-utils@2.2.0:
+    resolution: {integrity: sha512-L6f5oQRAoLU1RwXz0Ab9mxsE7LtxeVB6AIR1lpkZMsOyg/JXeaxBaXa/FVCBZyNr9S9I4wkHrlZTklX+im+WMw==}
     engines: {node: '>=18.12'}
     peerDependencies:
       typescript: '>=4.8.4'
@@ -2865,14 +2871,14 @@ snapshots:
     dependencies:
       graphql: 16.12.0
 
-  '@hono/graphql-server@0.7.0(hono@4.11.1)':
+  '@hono/graphql-server@0.7.0(hono@4.11.3)':
     dependencies:
       graphql: 16.12.0
-      hono: 4.11.1
+      hono: 4.11.3
 
-  '@hono/node-server@1.19.7(hono@4.11.1)':
+  '@hono/node-server@1.19.7(hono@4.11.3)':
     dependencies:
-      hono: 4.11.1
+      hono: 4.11.3
 
   '@humanfs/core@0.19.1': {}
 
@@ -2916,10 +2922,10 @@ snapshots:
     dependencies:
       graphql: 16.12.0
 
-  '@pothos/plugin-drizzle@0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
+  '@pothos/plugin-drizzle@0.16.1(@pothos/core@4.10.0(graphql@16.12.0))(drizzle-orm@1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3))(graphql@16.12.0)':
     dependencies:
       '@pothos/core': 4.10.0(graphql@16.12.0)
-      drizzle-orm: 1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+      drizzle-orm: 1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       graphql: 16.12.0
 
   '@rollup/rollup-android-arm-eabi@4.54.0':
@@ -3056,7 +3062,7 @@ snapshots:
       eslint: 9.39.2
       ignore: 7.0.5
       natural-compare: 1.4.0
-      ts-api-utils: 2.1.0(typescript@5.9.3)
+      ts-api-utils: 2.2.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
@@ -3098,7 +3104,7 @@ snapshots:
       '@typescript-eslint/utils': 8.50.1(eslint@9.39.2)(typescript@5.9.3)
       debug: 4.4.3
       eslint: 9.39.2
-      ts-api-utils: 2.1.0(typescript@5.9.3)
+      ts-api-utils: 2.2.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
@@ -3115,7 +3121,7 @@ snapshots:
       minimatch: 9.0.5
       semver: 7.7.3
       tinyglobby: 0.2.15
-      ts-api-utils: 2.1.0(typescript@5.9.3)
+      ts-api-utils: 2.2.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
@@ -3495,7 +3501,7 @@ snapshots:
 
   dotenv@17.2.3: {}
 
-  drizzle-kit@1.0.0-beta.5-0a7601e:
+  drizzle-kit@1.0.0-beta.6-4414a19:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
@@ -3504,7 +3510,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
+  drizzle-orm@1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
     dependencies:
       '@types/mssql': 9.1.8
       mssql: 11.0.1
@@ -3512,9 +3518,9 @@ snapshots:
       '@types/pg': 8.16.0
       pg: 8.16.3
 
-  drizzle-seed@1.0.0-beta.5-0a7601e(drizzle-orm@1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)):
+  drizzle-seed@1.0.0-beta.6-4414a19(drizzle-orm@1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)):
     dependencies:
-      drizzle-orm: 1.0.0-beta.5-0a7601e(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+      drizzle-orm: 1.0.0-beta.6-4414a19(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       pure-rand: 6.1.0
 
   dunder-proto@1.0.1:
@@ -3986,7 +3992,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.11.1: {}
+  hono@4.11.3: {}
 
   http-proxy-agent@7.0.2:
     dependencies:
@@ -4156,6 +4162,8 @@ snapshots:
   isarray@2.0.5: {}
 
   isexe@2.0.0: {}
+
+  jest-date-mock@1.0.10: {}
 
   jose@6.1.3: {}
 
@@ -4714,7 +4722,7 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  ts-api-utils@2.1.0(typescript@5.9.3):
+  ts-api-utils@2.2.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
 

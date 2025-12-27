@@ -19,9 +19,11 @@ async function main() {
     },
     relations,
   });
-  await reset(db, schema);
-  await seed(db, schema);
+  db.transaction(async (tx) => {
+    await reset(tx, schema);
+    await seed(tx, schema);
+  });
+
   db.$client.end();
-  console.log(`seed ${searchPath}`);
 }
 main();

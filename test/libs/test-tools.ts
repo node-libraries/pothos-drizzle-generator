@@ -28,14 +28,28 @@ export const createDB = <TRelations extends AnyRelations = EmptyRelations>({
 }: {
   relations: TRelations;
 }) => {
-  return drizzle({
+  const logs: { query: string; params: unknown[] }[] = [];
+  const db = drizzle({
     connection: {
       connectionString,
       options: `--search_path=${searchPath}`,
     },
     relations,
-    // logger: true,
+    logger: {
+      logQuery: (query, params) => {
+        logs.push({ query, params });
+      },
+    },
   });
+  (db as typeof db & { _logs: typeof logs })._logs = logs;
+  return db as typeof db & { _logs: typeof logs };
+};
+
+export const clearLogs = (db: ReturnType<typeof createDB>) => {
+  db._logs.splice(0);
+};
+export const getLogs = (db: ReturnType<typeof createDB>) => {
+  return db._logs;
 };
 
 export const createBuilder = <
@@ -52,18 +66,20 @@ export const createBuilder = <
     }>
   >["pothosDrizzleGenerator"];
 }) => {
-  return new SchemaBuilder<{
+  const db = createDB({ relations });
+  const builder = new SchemaBuilder<{
     DrizzleRelations: TRelations;
     Context: HonoContext;
   }>({
     plugins: [DrizzlePlugin, PothosDrizzleGeneratorPlugin],
     drizzle: {
-      client: () => createDB({ relations }),
+      client: db,
       relations,
       getTableConfig,
     },
     pothosDrizzleGenerator,
   });
+  return { db, builder };
 };
 
 export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
@@ -78,7 +94,7 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
     }>
   >["pothosDrizzleGenerator"];
 }) => {
-  const builder = createBuilder({ relations, pothosDrizzleGenerator });
+  const { builder, db } = createBuilder({ relations, pothosDrizzleGenerator });
   const schema = builder.toSchema({ sortSchema: false });
   const app = new Hono<Context>();
   const server = graphqlServer({
@@ -98,7 +114,7 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
 
     return server(c, next);
   });
-  return { app, schema };
+  return { app, schema, db };
 };
 
 export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
@@ -113,7 +129,7 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     }>
   >["pothosDrizzleGenerator"];
 }) => {
-  const { app } = createApp({ relations, pothosDrizzleGenerator });
+  const { app, db } = createApp({ relations, pothosDrizzleGenerator });
   const client = new Client({
     url: "http://localhost/",
     exchanges: [cacheExchange, fetchExchange],
@@ -123,5 +139,21 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     },
     preferGetMethod: false,
   });
-  return { app, client };
+  return { app, client, db };
 };
+
+export function filterObject(obj: object, keys: string[]): object {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => filterObject(item, keys));
+  }
+  if (obj && typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (!keys.includes(k)) {
+        result[k] = filterObject(v, keys);
+      }
+    }
+    return result;
+  }
+  return obj;
+}

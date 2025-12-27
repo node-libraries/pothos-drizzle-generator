@@ -28,9 +28,8 @@ const query = gql`
     createdAt
     updatedAt
   }
-  query FindManyUser(
+  query FindFirstUser(
     $offset: Int
-    $limit: Int
     $where: UserWhere
     $orderBy: [UserOrderBy!]
     $postsCountWhere: PostWhere
@@ -39,12 +38,7 @@ const query = gql`
     $postsWhere: PostWhere
     $postsOrderBy: [PostOrderBy!]
   ) {
-    findManyUser(
-      offset: $offset
-      limit: $limit
-      where: $where
-      orderBy: $orderBy
-    ) {
+    findFirstUser(offset: $offset, where: $where, orderBy: $orderBy) {
       ...user
       postsCount(where: $postsCountWhere)
       posts(
@@ -59,14 +53,15 @@ const query = gql`
   }
 `;
 
-describe("findMany", () => {
+describe("findFirst", () => {
   it("sorts array in ascending order by user name", async () => {
     const result = await client.query(query, {
       orderBy: [{ name: "Asc" }],
     });
 
-    const users = result.data.findManyUser;
-    expect(users).toMatchSnapshot();
+    const user = result.data.findFirstUser;
+    expect(user).toBeDefined();
+    expect(user).toMatchSnapshot();
   });
 
   it("sorts array in descending order by user name", async () => {
@@ -74,25 +69,8 @@ describe("findMany", () => {
       orderBy: [{ name: "Desc" }, { id: "Asc" }],
     });
 
-    const users = result.data.findManyUser;
-    expect(users).toMatchSnapshot();
-  });
-  it("limit desc", async () => {
-    const result = await client.query(query, {
-      orderBy: { name: "Desc" },
-      limit: 3,
-    });
-
-    const users = result.data.findManyUser;
-    expect(users).toMatchSnapshot();
-  });
-  it("limit asc", async () => {
-    const result = await client.query(query, {
-      orderBy: { name: "Asc" },
-      limit: 3,
-    });
-
-    const users = result.data.findManyUser;
-    expect(users).toMatchSnapshot();
+    const user = result.data.findFirstUser;
+    expect(user).toBeDefined();
+    expect(user).toMatchSnapshot();
   });
 });

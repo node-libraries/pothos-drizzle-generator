@@ -33,7 +33,7 @@ export const getQueryFragment = (
     fragment?.selectionSet.selections.forEach((selection) => {
       getQueryFragment(info, selectFields, selection);
     });
-  } else if (field.kind === "Field") {
+  } else if (field.kind === "Field" && field.name.value !== "__typename") {
     if (field.selectionSet?.selections.length) {
       selectFields[field.name.value] = getQueryFields(info, [field]);
     } else {

@@ -481,8 +481,11 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
-                query({});
-                const returning = getReturning(info, columns);
+                const { returning, isRelay } = getReturning(info, columns);
+                if (!isRelay) {
+                  query({});
+                }
+
                 return returning
                   ? generator
                       .getClient(ctx)
@@ -534,8 +537,11 @@ export class PothosDrizzleGenerator<
                 )
                   throw new Error("Depth limit exceeded");
                 if (!args.input.length) return [];
-                query({});
-                const returning = getReturning(info, columns);
+                const { returning, isRelay } = getReturning(info, columns);
+                if (!isRelay) {
+                  query({});
+                }
+
                 return returning
                   ? generator
                       .getClient(ctx)
@@ -591,8 +597,11 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
-                query({});
-                const returning = getReturning(info, columns);
+
+                const { returning, isRelay } = getReturning(info, columns);
+                if (!isRelay) {
+                  query({});
+                }
                 return returning
                   ? generator
                       .getClient(ctx)
@@ -658,8 +667,38 @@ export class PothosDrizzleGenerator<
                   getQueryDepth(info) > p.depthLimit
                 )
                   throw new Error("Depth limit exceeded");
+                const { returning, isRelay } = getReturning(info, columns);
+                if (isRelay) {
+                  const result = await generator
+                    .getQueryTable(ctx, modelName)
+                    .findMany(
+                      replaceColumnValues(
+                        tables,
+                        modelName,
+                        getQueryFields(info),
+                        query({
+                          ...args,
+                          where: {
+                            AND: [structuredClone(args.where), p.where].filter(
+                              (v) => v
+                            ),
+                          },
+                        })
+                      ) as never
+                    );
+                  await generator
+                    .getClient(ctx)
+                    .delete(table as never)
+                    .where(
+                      createWhereQuery(table, {
+                        AND: [structuredClone(args.where), p.where].filter(
+                          (v) => v
+                        ),
+                      } as never)
+                    );
+                  return result;
+                }
                 query({});
-                const returning = getReturning(info, columns);
                 return returning
                   ? generator
                       .getClient(ctx)
