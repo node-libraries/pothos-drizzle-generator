@@ -684,11 +684,6 @@ export class PothosDrizzleGenerator<
               modelData
             );
             const combinedInput = { ...args.input, ...params.input };
-            const dbColumnsInput = Object.fromEntries(
-              Object.entries(combinedInput).filter(([key]) =>
-                columns.some((col) => col.name === key)
-              )
-            );
             const relationFieldsInput = Object.entries(combinedInput).filter(
               ([key]) => columns.every((col) => col.name !== key)
             );

@@ -229,7 +229,6 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     return input;
   }
   getInputRelation(modelName: string) {
-    const builder = this.builder;
     const { relations } = this.getTables()[modelName]!;
 
     const relayFields = Object.entries(relations)
