@@ -98,3 +98,36 @@ describe("createMany", () => {
     ).toMatchSnapshot();
   });
 });
+
+describe("createMany may to many", () => {
+  it("create", async () => {
+    const categories = await db.query.categories.findMany({
+      limit: 3,
+      orderBy: { name: "asc" },
+    });
+
+    const user = await db.query.users.findFirst();
+    const result = await client.mutation(query, {
+      input: [
+        {
+          title: "createMany",
+          content: "Test",
+          published: true,
+          authorId: user?.id,
+          categories: { set: categories.map((v) => ({ id: v.id })) },
+        },
+        {
+          title: "createMany2",
+          content: "Test2",
+          published: false,
+          authorId: user?.id,
+          categories: { set: categories.map((v) => ({ id: v.id })) },
+        },
+      ],
+      categoriesOrderBy: { name: "Asc" },
+    });
+    expect(
+      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
+    ).toMatchSnapshot();
+  });
+});

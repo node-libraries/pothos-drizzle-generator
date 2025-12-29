@@ -21,7 +21,11 @@ import {
 import type { OperationBasic } from "./libs/operations.js";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgTable } from "drizzle-orm/pg-core";
+import type {
+  PgQueryResultHKT,
+  PgTable,
+  PgTransaction,
+} from "drizzle-orm/pg-core";
 import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -524,118 +528,57 @@ export class PothosDrizzleGenerator<
               info,
               modelData
             );
-            const input = Object.fromEntries(
-              Object.entries({
-                ...args.input,
-                ...params.input,
-              }).filter(([key]) => columns.some((v) => v.name === key))
+            const combinedInput = { ...args.input, ...params.input };
+            const dbColumnsInput = Object.fromEntries(
+              Object.entries(combinedInput).filter(([key]) =>
+                columns.some((col) => col.name === key)
+              )
             );
-            const relationInput = Object.entries({
-              ...args.input,
-              ...params.input,
-            }).filter(([key]) => columns.every((v) => v.name !== key));
+            const relationFieldsInput = Object.entries(combinedInput).filter(
+              ([key]) => columns.every((col) => col.name !== key)
+            );
+            const hasRelationInput = relationFieldsInput.length > 0;
             const { returning, isRelay } = getReturning(
               info,
               columns,
-              relationInput.length > 0
+              hasRelationInput
             );
+
             if (!isRelay) {
               query({});
             }
+
             if (!returning) {
               return client
                 .insert(table as never)
-                .values(input as never)
+                .values(dbColumnsInput as never)
                 .then(() => ({}));
             }
-            const result = await client
-              .insert(table as never)
-              .values(input as never)
-              .returning(returning)
-              .then(async (results) => {
-                await this.insertRelayValue({
-                  results,
-                  client,
-                  relationInput,
-                  relations,
-                });
-                return results;
-              })
-              .then((v: Record<string, unknown>[]) => v[0]);
-            return result;
+
+            return client.transaction(async (tx) =>
+              client
+                .insert(table as never)
+                .values(dbColumnsInput as never)
+                .returning(returning)
+                .then(async (results) => {
+                  if (hasRelationInput) {
+                    await this.insertRelayValue({
+                      results,
+                      client: tx,
+                      relationInputs: [relationFieldsInput],
+                      relations,
+                    });
+                  }
+                  return results[0];
+                })
+            );
           },
         } as never),
       }),
     });
   }
-  private async insertRelayValue({
-    results,
-    client,
-    relationInput,
-    relations,
-  }: {
-    results: {
-      [x: string]: unknown;
-    }[];
-    client: NodePgDatabase<Record<string, never>, EmptyRelations>;
-    relationInput: [string, unknown][];
-    relations: RelationsRecord;
-  }) {
-    if (relationInput.length) {
-      for (const result of results) {
-        for (const [relationName, value] of relationInput) {
-          const relayValue = value as {
-            set?: Record<string, unknown>[];
-          };
-          const setValue = relayValue.set;
-          if (setValue) {
-            const relay = relations[relationName];
-            const throughTable = relay?.throughTable;
-            if (relay?.through) {
-              const sourceToThrough = Object.fromEntries(
-                relay.sourceColumns.map((v, index) => [
-                  v.name,
-                  relay.through!.source[index]!._.key,
-                ])
-              );
-              const targetToThrough = Object.fromEntries(
-                relay.targetColumns.map((v, index) => [
-                  v.name,
-                  relay.through!.target[index]!._.key,
-                ])
-              );
-              if (throughTable) {
-                const where = relay.sourceColumns.map(
-                  (v) => [sourceToThrough[v.name], result[v.name]] as const
-                );
-                await client.transaction(async (t) => {
-                  await t
-                    .delete(throughTable as never)
-                    .where(
-                      and(
-                        ...where.map(([key, value]) => eq(key as never, value))
-                      )
-                    );
-                  const values = setValue.map((value) =>
-                    Object.fromEntries([
-                      ...Object.entries(value).map(([key, value]) => [
-                        targetToThrough[key],
-                        value,
-                      ]),
-                      ...where,
-                    ])
-                  );
-                  await t.insert(throughTable as never).values(values);
-                });
-              }
-            }
-          }
-        }
-      }
-    }
-  }
   private defineCreateMany(modelName: string, modelData: ModelData) {
-    const { tableInfo, columns, table } = modelData;
+    const { tableInfo, columns, table, relations } = modelData;
     const inputCreate = this.generator.getInputCreate(modelName);
 
     this.builder.mutationType({
@@ -651,6 +594,7 @@ export class PothosDrizzleGenerator<
             ctx: object,
             info: GraphQLResolveInfo
           ) => {
+            const client = this.generator.getClient(ctx);
             const params = this.checkPermissionsAndGetParams(
               modelName,
               "createMany",
@@ -659,28 +603,118 @@ export class PothosDrizzleGenerator<
               modelData
             );
             if (!args.input.length) return [];
-            const { returning, isRelay } = getReturning(info, columns);
+            const combinedInputs = args.input.map((v) => ({
+              ...v,
+              ...params.input,
+            }));
+            const relationFieldsInputs = combinedInputs.map((v) =>
+              Object.entries(v).filter(([key]) =>
+                columns.every((col) => col.name !== key)
+              )
+            );
+
+            const hasRelationInput = relationFieldsInputs.some(
+              (v) => v.length > 0
+            );
+            const { returning, isRelay } = getReturning(
+              info,
+              columns,
+              hasRelationInput
+            );
+
             if (!isRelay) {
               query({});
             }
 
-            return returning
-              ? this.generator
-                  .getClient(ctx)
-                  .insert(table as never)
-                  .values(args.input.map((v) => ({ ...v, ...params.input })))
-                  .returning(returning)
-              : this.generator
-                  .getClient(ctx)
-                  .insert(table as never)
-                  .values(args.input.map((v) => ({ ...v, ...params.input })))
-                  .then((v) => Array(v.rowCount ?? 0).fill({}));
+            if (!returning) {
+              return client
+                .insert(table as never)
+                .values(combinedInputs)
+                .then((v) => Array(v.rowCount ?? 0).fill({}));
+            }
+            return client.transaction(async (tx) =>
+              tx
+                .insert(table as never)
+                .values(combinedInputs)
+                .returning(returning)
+                .then(async (results) => {
+                  if (hasRelationInput) {
+                    await this.insertRelayValue({
+                      results,
+                      client: tx,
+                      relationInputs: relationFieldsInputs,
+                      relations,
+                    });
+                  }
+                  return results;
+                })
+            );
           },
         } as never),
       }),
     });
   }
+  private async insertRelayValue<TQueryResult extends PgQueryResultHKT>({
+    results,
+    client,
+    relationInputs,
+    relations,
+  }: {
+    results: Record<string, unknown>[];
+    client: PgTransaction<TQueryResult, EmptyRelations>;
+    relationInputs: [string, unknown][][];
+    relations: RelationsRecord;
+  }) {
+    for (const index in results) {
+      const result = results[index];
+      const relationInput = relationInputs[index];
+      if (!result || !relationInput?.length) continue;
+      for (const [relationName, value] of relationInput) {
+        const inputPayload = value as { set?: Record<string, unknown>[] };
+        const itemsToSet = inputPayload.set;
 
+        const relay = relations[relationName];
+        if (!itemsToSet || !relay?.through || !relay.throughTable) continue;
+
+        const { throughTable } = relay;
+
+        const sourceToThroughMap = Object.fromEntries(
+          relay.sourceColumns.map((v, i) => [
+            v.name,
+            relay.through!.source[i]!._.key,
+          ])
+        );
+        const targetToThroughMap = Object.fromEntries(
+          relay.targetColumns.map((v, i) => [
+            v.name,
+            relay.through!.target[i]!._.key,
+          ])
+        );
+
+        const sourceFilters = relay.sourceColumns.map(
+          (v) => [sourceToThroughMap[v.name], result[v.name]] as const
+        );
+
+        await client
+          .delete(throughTable as never)
+          .where(
+            and(...sourceFilters.map(([key, val]) => eq(key as never, val)))
+          );
+
+        const insertRows = itemsToSet.map((item) => {
+          const targetValues = Object.entries(item).map(([key, val]) => [
+            targetToThroughMap[key],
+            val,
+          ]);
+          return Object.fromEntries([...targetValues, ...sourceFilters]);
+        });
+
+        if (insertRows.length > 0) {
+          await client.insert(throughTable as never).values(insertRows);
+        }
+      }
+    }
+  }
   private defineUpdate(modelName: string, modelData: ModelData) {
     const { tableInfo, columns, table } = modelData;
     const inputUpdate = this.generator.getInputUpdate(modelName);

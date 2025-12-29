@@ -42,15 +42,44 @@ exports[`createOne > create may to many 1`] = `
     "categories": [
       {
         "__typename": "Category",
-        "name": "Lia",
-      },
-      {
-        "__typename": "Category",
         "name": "Aukai",
       },
       {
         "__typename": "Category",
         "name": "Clotile",
+      },
+      {
+        "__typename": "Category",
+        "name": "Lia",
+      },
+    ],
+    "categoriesCount": 3,
+    "content": "many to many",
+    "published": true,
+    "title": "many to many",
+  },
+}
+`;
+
+exports[`createOne > create may to many retry 1`] = `
+{
+  "createOnePost": {
+    "__typename": "Post",
+    "author": null,
+    "authorCount": 0,
+    "authorId": null,
+    "categories": [
+      {
+        "__typename": "Category",
+        "name": "Rayner",
+      },
+      {
+        "__typename": "Category",
+        "name": "Titiana",
+      },
+      {
+        "__typename": "Category",
+        "name": "Tobin",
       },
     ],
     "categoriesCount": 3,

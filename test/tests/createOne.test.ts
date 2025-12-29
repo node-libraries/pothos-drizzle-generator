@@ -112,7 +112,7 @@ describe("createOne", () => {
     expect(
       filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
     ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(2);
+    expect(getLogs(db).length).toBe(4);
   });
 
   it("create no relay", async () => {
@@ -129,7 +129,7 @@ describe("createOne", () => {
     expect(
       filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
     ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(1);
+    expect(getLogs(db).length).toBe(3);
   });
 
   it("create may to many", async () => {
@@ -146,6 +146,7 @@ describe("createOne", () => {
         published: true,
         categories: { set: categories.map((v) => ({ id: v.id })) },
       },
+      categoriesOrderBy: { name: "Asc" },
       where: {
         id: { eq: post?.id },
       },
@@ -153,6 +154,28 @@ describe("createOne", () => {
     expect(
       filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
     ).toMatchSnapshot();
-    // expect(getLogs(db).length).toBe(2);
+  });
+  it("create may to many retry", async () => {
+    const post = await db.query.posts.findFirst();
+    const categories = await db.query.categories.findMany({
+      limit: 3,
+      orderBy: { name: "desc" },
+    });
+    clearLogs(db);
+    const result = await client.mutation(query, {
+      input: {
+        title: "many to many",
+        content: "many to many",
+        published: true,
+        categories: { set: categories.map((v) => ({ id: v.id })) },
+      },
+      categoriesOrderBy: { name: "Asc" },
+      where: {
+        id: { eq: post?.id },
+      },
+    });
+    expect(
+      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
+    ).toMatchSnapshot();
   });
 });
