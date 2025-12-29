@@ -39,6 +39,53 @@ exports[`update > update 1`] = `
 }
 `;
 
+exports[`update > update many to many 1`] = `
+{
+  "updatePost": [
+    {
+      "__typename": "Post",
+      "author": {
+        "__typename": "User",
+        "email": "nerve-racking_aitan@gmail.com",
+        "name": "Laylani",
+        "roles": [
+          "USER",
+          "USER",
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "USER",
+          "ADMIN",
+          "USER",
+          "ADMIN",
+        ],
+      },
+      "authorCount": 1,
+      "authorId": "3b23d30c-f359-42bd-0656-eaf4561a9cd0",
+      "categories": [
+        {
+          "__typename": "Category",
+          "name": "Aukai",
+        },
+        {
+          "__typename": "Category",
+          "name": "Clotile",
+        },
+        {
+          "__typename": "Category",
+          "name": "Lia",
+        },
+      ],
+      "categoriesCount": 3,
+      "content": "dYZa0c5FsC",
+      "published": true,
+      "title": "XYZ",
+    },
+  ],
+}
+`;
+
 exports[`update > update no relay 1`] = `
 {
   "updatePost": [

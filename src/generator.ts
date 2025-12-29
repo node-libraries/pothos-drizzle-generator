@@ -228,67 +228,88 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     this.inputType[modelName][type] = input;
     return input;
   }
+  getInputRelation(modelName: string) {
+    const builder = this.builder;
+    const { relations } = this.getTables()[modelName]!;
 
+    const relayFields = Object.entries(relations)
+      .filter(([, relation]) => relation.through)
+      .map(([relationName, relation]) => {
+        const targetName = relation.targetTableName;
+
+        const rowInputType = this.getInputType(
+          modelName,
+          `TO_${targetName}_SET`,
+          {
+            fields: (t) =>
+              Object.fromEntries(
+                relation.targetColumns.map((col) => [
+                  col.name,
+                  t.field({
+                    type: this.getDataType(col),
+                    required: col.notNull,
+                  }),
+                ])
+              ),
+          }
+        );
+        const relationInputType = this.getInputType(
+          modelName,
+          `TO_${targetName}`,
+          {
+            fields: (t) => ({
+              set: t.field({ type: [rowInputType] }),
+            }),
+          }
+        );
+
+        return [relationName, relationInputType] as const;
+      });
+    return relayFields;
+  }
   getInputCreate(modelName: string) {
-    const { inputColumns, relations } = this.getTables()[modelName]!;
-    return this.getInputType(modelName, "Create", {
-      fields: (t) =>
-        Object.fromEntries([
-          ...inputColumns.map((c: PgColumn) => [
-            c.name,
-            t.field({
-              type: this.getDataType(c),
-              required: c.notNull && !c.default,
-            }),
-          ]),
-          ...Object.entries(relations)
-            .filter(([, relay]) => relay.through)
-            .map(([relayName, relay]) => {
-              const setType = t.builder.inputType(
-                `${modelName}_TO_${relay.targetTableName}_SET`,
-                {
-                  fields: (t) =>
-                    Object.fromEntries(
-                      relay.targetColumns.map((v) => [
-                        v.name,
-                        t.field({
-                          type: this.getDataType(v),
-                          required: v.notNull,
-                        }),
-                      ])
-                    ),
-                }
-              );
+    const { inputColumns } = this.getTables()[modelName]!;
 
-              return [
-                relayName,
-                t.field({
-                  type: t.builder.inputType(
-                    `${modelName}_TO_${relay.targetTableName}`,
-                    {
-                      fields: (t) => ({
-                        set: t.field({ type: [setType] }),
-                      }),
-                    }
-                  ),
-                }),
-              ];
-            }),
-        ]),
+    return this.getInputType(modelName, "Create", {
+      fields: (t) => {
+        const dbFields = inputColumns.map((col: PgColumn) => [
+          col.name,
+          t.field({
+            type: this.getDataType(col),
+            required: col.notNull && !col.default,
+          }),
+        ]);
+        const relayFields = this.getInputRelation(modelName);
+
+        return Object.fromEntries([
+          ...dbFields,
+          ...relayFields.map(([name, field]) => [
+            name,
+            t.field({ type: field }),
+          ]),
+        ]);
+      },
     });
   }
+
   getInputUpdate(modelName: string) {
     const { inputColumns } = this.getTables()[modelName]!;
     return this.getInputType(modelName, "Update", {
       fields: (t) => {
-        return Object.fromEntries(
-          inputColumns.map((c: PgColumn) => [
-            c.name,
-            t.field({
-              type: this.getDataType(c),
-            }),
-          ])
-        );
+        const dbFields = inputColumns.map((c: PgColumn) => [
+          c.name,
+          t.field({
+            type: this.getDataType(c),
+          }),
+        ]);
+        const relayFields = this.getInputRelation(modelName);
+        return Object.fromEntries([
+          ...dbFields,
+          ...relayFields.map(([name, field]) => [
+            name,
+            t.field({ type: field }),
+          ]),
+        ]);
       },
     });
   }

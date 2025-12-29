@@ -556,7 +556,7 @@ export class PothosDrizzleGenerator<
             }
 
             return client.transaction(async (tx) =>
-              client
+              tx
                 .insert(table as never)
                 .values(dbColumnsInput as never)
                 .returning(returning)
@@ -654,6 +654,91 @@ export class PothosDrizzleGenerator<
       }),
     });
   }
+  private defineUpdate(modelName: string, modelData: ModelData) {
+    const { tableInfo, columns, table, relations } = modelData;
+    const inputUpdate = this.generator.getInputUpdate(modelName);
+    const inputWhere = this.generator.getInputWhere(modelName);
+
+    this.builder.mutationType({
+      fields: (t) => ({
+        [`update${tableInfo.name}`]: t.drizzleField({
+          type: [modelName],
+          nullable: false,
+          args: {
+            input: t.arg({ type: inputUpdate, required: true }),
+            where: t.arg({ type: inputWhere }),
+          },
+          resolve: async (
+            query: (selection: unknown) => object,
+            _parent: unknown,
+            args: { input: object; where?: object },
+            ctx: object,
+            info: GraphQLResolveInfo
+          ) => {
+            const client = this.generator.getClient(ctx);
+            const params = this.checkPermissionsAndGetParams(
+              modelName,
+              "update",
+              ctx,
+              info,
+              modelData
+            );
+            const combinedInput = { ...args.input, ...params.input };
+            const dbColumnsInput = Object.fromEntries(
+              Object.entries(combinedInput).filter(([key]) =>
+                columns.some((col) => col.name === key)
+              )
+            );
+            const relationFieldsInput = Object.entries(combinedInput).filter(
+              ([key]) => columns.every((col) => col.name !== key)
+            );
+            const hasRelationInput = relationFieldsInput.length > 0;
+            const { returning, isRelay } = getReturning(
+              info,
+              columns,
+              hasRelationInput
+            );
+
+            if (!isRelay) {
+              query({});
+            }
+            const whereQuery = createWhereQuery(table, {
+              AND: [structuredClone(args.where), params.where].filter((v) => v),
+            } as never);
+
+            if (!returning) {
+              return client
+                .update(table as never)
+                .set(combinedInput)
+                .where(whereQuery)
+                .then((v) => Array(v.rowCount ?? 0).fill({}));
+            }
+
+            return client.transaction(async (tx) =>
+              tx
+                .update(table as never)
+                .set(combinedInput)
+                .where(whereQuery)
+                .returning(returning)
+                .then(async (results) => {
+                  if (hasRelationInput) {
+                    await this.insertRelayValue({
+                      results,
+                      client: tx,
+                      relationInputs: Array(results.length).fill(
+                        relationFieldsInput
+                      ),
+                      relations,
+                    });
+                  }
+                  return results;
+                })
+            );
+          },
+        } as never),
+      }),
+    });
+  }
   private async insertRelayValue<TQueryResult extends PgQueryResultHKT>({
     results,
     client,
@@ -694,11 +779,14 @@ export class PothosDrizzleGenerator<
         const sourceFilters = relay.sourceColumns.map(
           (v) => [sourceToThroughMap[v.name], result[v.name]] as const
         );
-
         await client
           .delete(throughTable as never)
           .where(
-            and(...sourceFilters.map(([key, val]) => eq(key as never, val)))
+            and(
+              ...sourceFilters.map(([key, val]) =>
+                eq(relay.throughTable![key as never], val)
+              )
+            )
           );
 
         const insertRows = itemsToSet.map((item) => {
@@ -715,61 +803,6 @@ export class PothosDrizzleGenerator<
       }
     }
   }
-  private defineUpdate(modelName: string, modelData: ModelData) {
-    const { tableInfo, columns, table } = modelData;
-    const inputUpdate = this.generator.getInputUpdate(modelName);
-    const inputWhere = this.generator.getInputWhere(modelName);
-
-    this.builder.mutationType({
-      fields: (t) => ({
-        [`update${tableInfo.name}`]: t.drizzleField({
-          type: [modelName],
-          nullable: false,
-          args: {
-            input: t.arg({ type: inputUpdate, required: true }),
-            where: t.arg({ type: inputWhere }),
-          },
-          resolve: async (
-            query: (selection: unknown) => object,
-            _parent: unknown,
-            args: { input: object; where?: object },
-            ctx: object,
-            info: GraphQLResolveInfo
-          ) => {
-            const params = this.checkPermissionsAndGetParams(
-              modelName,
-              "update",
-              ctx,
-              info,
-              modelData
-            );
-            const { returning, isRelay } = getReturning(info, columns);
-            if (!isRelay) {
-              query({});
-            }
-            const whereQuery = createWhereQuery(table, {
-              AND: [structuredClone(args.where), params.where].filter((v) => v),
-            } as never);
-
-            return returning
-              ? this.generator
-                  .getClient(ctx)
-                  .update(table as never)
-                  .set(args.input)
-                  .where(whereQuery)
-                  .returning(returning)
-              : this.generator
-                  .getClient(ctx)
-                  .update(table as never)
-                  .set(args.input)
-                  .where(whereQuery)
-                  .then((v) => Array(v.rowCount ?? 0).fill({}));
-          },
-        } as never),
-      }),
-    });
-  }
-
   private defineDelete(
     modelName: string,
     modelData: ModelData,

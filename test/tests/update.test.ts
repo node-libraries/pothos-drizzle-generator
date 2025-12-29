@@ -110,7 +110,7 @@ describe("update", () => {
     expect(
       filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
     ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(2);
+    expect(getLogs(db).length).toBe(4);
   });
 
   it("update no relay", async () => {
@@ -125,6 +125,29 @@ describe("update", () => {
     expect(
       filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
     ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(1);
+    expect(getLogs(db).length).toBe(3);
+  });
+
+  it("update many to many", async () => {
+    const categories = await db.query.categories.findMany({
+      limit: 3,
+      orderBy: { name: "asc" },
+    });
+    const post = await db.query.posts.findFirst();
+    clearLogs(db);
+    const result = await client.mutation(query, {
+      input: {
+        title: "XYZ",
+        categories: { set: categories.map((v) => ({ id: v.id })) },
+      },
+      where: {
+        id: { eq: post?.id },
+      },
+      categoriesOrderBy: { name: "Asc" },
+    });
+    expect(
+      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
+    ).toMatchSnapshot();
+    expect(getLogs(db).length).toBe(6);
   });
 });
