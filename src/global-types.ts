@@ -4,6 +4,7 @@ import type { Operation, OperationBasic } from "./libs/operations.js";
 import type { PothosDrizzleGenerator } from "./PothosDrizzleGenerator.js";
 import type { SchemaTypes } from "@pothos/core";
 import type {
+  AnyMany,
   DBQueryConfigColumns,
   GetTableViewFieldSelection,
   RelationsFilter,
@@ -35,6 +36,19 @@ declare global {
         ? keyof DBQueryConfigColumns<GetTableViewFieldSelection<R>>
         : never
       : never;
+
+    type ColumnsWithManyRelations<
+      Types extends SchemaTypes,
+      U extends TableNames<Types>
+    > =
+      | keyof DBQueryConfigColumns<
+          GetTableViewFieldSelection<Relations<Types>[U]["table"]>
+        >
+      | keyof {
+          [K in keyof Relations<Types>[U]["relations"] as Relations<Types>[U]["relations"][K] extends AnyMany
+            ? K
+            : never]: any;
+        };
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       pothosDrizzleGenerator?: {
@@ -119,9 +133,12 @@ declare global {
               operation: (typeof OperationBasic)[number];
             }) => number | undefined;
             fields?: (params: { modelName: U }) =>
-              | { include: Columns<Types, U>[]; exclude?: undefined }
               | {
-                  exclude: Columns<Types, U>[];
+                  include: ColumnsWithManyRelations<Types, U>[];
+                  exclude?: undefined;
+                }
+              | {
+                  exclude: ColumnsWithManyRelations<Types, U>[];
                   include?: undefined;
                 };
             operations?: <U extends TableNames<Types>>(params: {
@@ -156,9 +173,12 @@ declare global {
               | RelationsFilter<Relations<Types>[U], Relations<Types>>
               | undefined;
             inputFields?: (params: { modelName: U }) =>
-              | { include: Columns<Types, U>[]; exclude?: undefined }
               | {
-                  exclude: Columns<Types, U>[];
+                  include: ColumnsWithManyRelations<Types, U>[];
+                  exclude?: undefined;
+                }
+              | {
+                  exclude: ColumnsWithManyRelations<Types, U>[];
                   include?: undefined;
                 };
             inputData?: (params: {
@@ -166,11 +186,17 @@ declare global {
               modelName: U;
               operation: (typeof OperationBasic)[number];
             }) =>
-              | PgUpdateSetSource<
+              | (PgUpdateSetSource<
                   Relations<Types>[U]["table"] extends PgTable<any>
                     ? Relations<Types>[U]["table"]
                     : never
-                >
+                > & {
+                  [K in keyof Relations<Types>[U]["relations"] as Relations<Types>[U]["relations"][K] extends AnyMany
+                    ? K
+                    : never]?: {
+                    set?: Array<Record<string, unknown>>;
+                  };
+                })
               | undefined;
           };
         };
