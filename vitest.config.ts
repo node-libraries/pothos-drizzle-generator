@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ["test/tools/seed.ts"],
     coverage: {
       include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/global-types.ts"],
       reporter: ["text"],
       reportsDirectory: "./test/coverage",
     },

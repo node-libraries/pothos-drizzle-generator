@@ -56,6 +56,13 @@ declare global {
           [K in keyof Relations<Types>[U]["relations"] as Relations<Types>[U]["relations"][K] extends AnyMany
             ? K
             : never]: any;
+        }
+      | keyof {
+          [K in keyof Relations<Types>[U]["relations"] as Relations<Types>[U]["relations"][K] extends AnyMany
+            ? K extends string
+              ? `${K}Count`
+              : never
+            : never]: any;
         };
 
     type AnyColumnsWithManyRelations<Types extends SchemaTypes> = {

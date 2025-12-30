@@ -34,6 +34,7 @@ import type { GraphQLResolveInfo } from "graphql";
 export type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
+  filterColumns: string[];
   columns: PgColumn[];
   primaryColumns: PgColumn[];
   inputColumns: PgColumn[];
@@ -147,9 +148,14 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         const columnValue = (modelOptions?.fields ?? allOptions?.fields)?.({
           modelName,
         });
-        const include = columnValue?.include ?? columns.map((c) => c.name);
-        const exclude = columnValue?.exclude ?? [];
+        const include = (columnValue?.include as undefined | string[]) ?? [
+          ...columns.map((c) => c.name),
+          ...Object.keys(relations),
+          ...Object.keys(relations).map((v) => `${v}Count`),
+        ];
+        const exclude = (columnValue?.exclude as undefined | string[]) ?? [];
         const filterColumns = include.filter((name) => !exclude.includes(name));
+
         // Input columns filter
         const inputFieldValue = (
           modelOptions?.inputFields ?? allOptions?.inputFields
@@ -164,14 +170,15 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
           modelName,
           {
             table,
-            columns: columns.filter((c) => filterColumns.includes(c.name)),
+            relations,
+            columns,
+            filterColumns,
             primaryColumns,
             operations,
             inputColumns: columns.filter((c) =>
               filterInputColumns.includes(c.name)
             ),
             tableInfo,
-            relations,
             executable: modelOptions?.executable ?? allOptions?.executable,
             limit: modelOptions?.limit ?? allOptions?.limit,
             orderBy: modelOptions?.orderBy ?? allOptions?.orderBy,

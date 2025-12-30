@@ -1,4 +1,3 @@
-import { isObjectType, type GraphQLSchema } from "graphql";
 import { describe, it, expect } from "vitest";
 import { OperationQuery } from "../../src";
 import { relations } from "../db/relations";
@@ -129,6 +128,67 @@ describe("GraphQL Schema operations", () => {
       expect(modelNames).not.toHaveLength(0);
       expect(modelNames).not.toContain("User");
       expect(modelNames).not.toContain("Post");
+    });
+  });
+
+  describe("GraphQL Schema model fields", () => {
+    it("include", () => {
+      const { schema } = createApp({
+        relations,
+        pothosDrizzleGenerator: {
+          all: {
+            fields: () => ({
+              include: ["authorId", "categories", "categoriesCount"],
+            }),
+          },
+        },
+      });
+      const model = getGraphqlModels(schema).find((v) => v.name === "Post");
+      const fields = Object.keys(model!.getFields());
+      expect(fields).toHaveLength(3);
+      expect(fields).toContain("authorId");
+      expect(fields).toContain("categories");
+      expect(fields).toContain("categoriesCount");
+    });
+    it("include", () => {
+      const { schema } = createApp({
+        relations,
+        pothosDrizzleGenerator: {
+          models: {
+            posts: {
+              fields: () => ({
+                include: ["authorId", "categories", "categoriesCount"],
+              }),
+            },
+          },
+        },
+      });
+      const model = getGraphqlModels(schema).find((v) => v.name === "Post");
+      const fields = Object.keys(model!.getFields());
+      expect(fields).toHaveLength(3);
+      expect(fields).toContain("authorId");
+      expect(fields).toContain("categories");
+      expect(fields).toContain("categoriesCount");
+    });
+    it("exclude", () => {
+      const { schema } = createApp({
+        relations,
+        pothosDrizzleGenerator: {
+          models: {
+            posts: {
+              fields: () => ({
+                exclude: ["authorId", "categories", "categoriesCount"],
+              }),
+            },
+          },
+        },
+      });
+      const model = getGraphqlModels(schema).find((v) => v.name === "Post");
+      const fields = Object.keys(model!.getFields());
+      expect(fields).not.toHaveLength(0);
+      expect(fields).not.toContain("authorId");
+      expect(fields).not.toContain("categories");
+      expect(fields).not.toContain("categoriesCount");
     });
   });
 });

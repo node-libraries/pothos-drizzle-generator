@@ -184,10 +184,11 @@ export const getGraphqlOperations = (schema: GraphQLSchema) => {
 };
 
 export const getGraphqlModels = (schema: GraphQLSchema) => {
-  return Object.values(schema.getTypeMap()).filter(
-    (v) =>
-      isObjectType(v) &&
-      !v.name.startsWith("__") &&
-      !["Query", "Mutation", "Subscription"].includes(v.name)
+  return Object.values(schema.getTypeMap()).flatMap((v) =>
+    isObjectType(v) &&
+    !v.name.startsWith("__") &&
+    !["Query", "Mutation", "Subscription"].includes(v.name)
+      ? [v]
+      : []
   );
 };

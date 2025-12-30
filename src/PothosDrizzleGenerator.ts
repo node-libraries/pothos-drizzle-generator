@@ -66,7 +66,7 @@ export class PothosDrizzleGenerator<
     modelData: ModelData,
     tables: Record<string, ModelData>
   ) {
-    const { tableInfo, relations, columns } = modelData;
+    const { tableInfo, relations, columns, filterColumns } = modelData;
     const builder = this.builder;
     const generator = this.generator;
 
@@ -77,25 +77,28 @@ export class PothosDrizzleGenerator<
     builder.drizzleObject(modelName as never, {
       name: tableInfo.name,
       fields: (t) => {
-        const relayList = filterRelations.map(([relayName, relay]) =>
-          this.createRelationField(t, relayName, relay, tables)
-        );
+        const relayList = filterRelations
+          .filter(([name]) => filterColumns.includes(name))
+          .map(([relayName, relay]) =>
+            this.createRelationField(t, relayName, relay, tables)
+          );
 
-        const relayCount = filterRelations.map(([relayName, relay]) =>
-          this.createRelationCountField(t, relayName, relay, tables)
-        );
-
-        return Object.fromEntries([
-          ...relayCount,
-          ...relayList,
-          ...columns.map((c) => [
+        const relayCount = filterRelations
+          .filter(([name]) => filterColumns.includes(`${name}Count`))
+          .map(([relayName, relay]) =>
+            this.createRelationCountField(t, relayName, relay, tables)
+          );
+        const columnList = columns
+          .filter(({ name }) => filterColumns.includes(name))
+          .map((c) => [
             c.name,
             t.expose(c.name, {
               type: generator.getDataType(c),
               nullable: !c.notNull,
             } as never),
-          ]),
-        ]);
+          ]);
+
+        return Object.fromEntries([...relayCount, ...relayList, ...columnList]);
       },
     });
   }
