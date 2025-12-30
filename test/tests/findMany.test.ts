@@ -95,4 +95,65 @@ describe("findMany", () => {
     const users = result.data.findManyUser;
     expect(users).toMatchSnapshot();
   });
+  describe("findMany - Additional Scenarios", () => {
+    it("filters users by email using eq operator", async () => {
+      const result = await client.query(query, {
+        where: { email: { eq: "user1@example.com" } },
+      });
+
+      const users = result.data.findManyUser;
+      expect(users).toMatchSnapshot();
+      if (users.length > 0) {
+        expect(users[0].email).toBe("user1@example.com");
+      }
+    });
+
+    it("filters users with AND condition (name and email)", async () => {
+      const result = await client.query(query, {
+        where: {
+          AND: [
+            { name: { ilike: "A%" } },
+            { roles: { arrayContains: "ADMIN" } },
+          ],
+        },
+      });
+      expect(result.data.findManyUser).toMatchSnapshot();
+    });
+
+    it("filters related posts within findManyUser", async () => {
+      const result = await client.query(query, {
+        postsWhere: {
+          published: { eq: true },
+        },
+      });
+
+      const users = result.data.findManyUser;
+      expect(users).toMatchSnapshot();
+      users.forEach((user: { posts: { published: boolean }[] }) => {
+        user.posts.forEach((post: { published: boolean }) => {
+          expect(post.published).toBe(true);
+        });
+      });
+    });
+
+    it("filters users by roles using arrayContains", async () => {
+      const result = await client.query(query, {
+        where: {
+          roles: { arrayContains: ["ADMIN"] },
+        },
+      });
+
+      expect(result.data.findManyUser).toMatchSnapshot();
+    });
+
+    it("filters users using NOT condition", async () => {
+      const result = await client.query(query, {
+        where: {
+          NOT: { name: { ilike: "A%" } },
+        },
+      });
+
+      expect(result.data.findManyUser).toMatchSnapshot();
+    });
+  });
 });

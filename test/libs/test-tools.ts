@@ -6,6 +6,7 @@ import DrizzlePlugin from "@pothos/plugin-drizzle";
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
+import { isObjectType, type GraphQLSchema } from "graphql";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { getContext } from "hono/context-storage";
@@ -107,6 +108,7 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
 }) => {
   const { builder, db } = createBuilder({ relations, pothosDrizzleGenerator });
   const schema = builder.toSchema({ sortSchema: false });
+
   const app = new Hono<Context>();
   const server = graphqlServer({
     schema,
@@ -125,7 +127,11 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
 
     return server(c, next);
   });
-  return { app, schema, db };
+  return {
+    app,
+    schema,
+    db,
+  };
 };
 
 export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
@@ -140,7 +146,7 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     }>
   >["pothosDrizzleGenerator"];
 }) => {
-  const { app, db } = createApp({ relations, pothosDrizzleGenerator });
+  const { app, db, schema } = createApp({ relations, pothosDrizzleGenerator });
   const client = new Client({
     url: "http://localhost/",
     exchanges: [cacheExchange, fetchExchange],
@@ -150,7 +156,7 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     },
     preferGetMethod: false,
   });
-  return { app, client, db };
+  return { app, client, db, schema };
 };
 
 export function filterObject(obj: object, keys: string[]): object {
@@ -168,3 +174,20 @@ export function filterObject(obj: object, keys: string[]): object {
   }
   return obj;
 }
+
+export const getGraphqlOperations = (schema: GraphQLSchema) => {
+  return [
+    schema.getQueryType()?.getFields(),
+    schema.getMutationType()?.getFields(),
+    schema.getSubscriptionType()?.getFields(),
+  ].flatMap((v) => (v ? Object.keys(v) : []));
+};
+
+export const getGraphqlModels = (schema: GraphQLSchema) => {
+  return Object.values(schema.getTypeMap()).filter(
+    (v) =>
+      isObjectType(v) &&
+      !v.name.startsWith("__") &&
+      !["Query", "Mutation", "Subscription"].includes(v.name)
+  );
+};

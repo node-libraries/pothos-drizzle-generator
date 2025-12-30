@@ -2,9 +2,15 @@ import "dotenv/config";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: { alias: { graphql: "graphql/index.js" } },
   test: {
     fileParallelism: false,
     include: ["test/**/*.test.ts"],
     setupFiles: ["test/tools/seed.ts"],
+    coverage: {
+      include: ["src/**/*.{ts,tsx}"],
+      reporter: ["text"],
+      reportsDirectory: "./test/coverage",
+    },
   },
 });

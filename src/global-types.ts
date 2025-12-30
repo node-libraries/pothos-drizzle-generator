@@ -109,15 +109,18 @@ declare global {
       | undefined;
 
     interface GlobalModelOptions<Types extends SchemaTypes> {
-      depthLimit?: <U extends TableNames<Types>>(
-        params: OperationParams<Types, U>
-      ) => number | undefined;
       fields?: <U extends TableNames<Types>>(
         params: ModelParams<Types, U>
       ) => IncludeExclude<AnyColumnsWithManyRelations<Types>> | undefined;
       operations?: <U extends TableNames<Types>>(
         params: ModelParams<Types, U>
       ) => OperationSelection;
+      inputFields?: <U extends TableNames<Types>>(
+        params: ModelParams<Types, U>
+      ) => IncludeExclude<AnyColumnsWithManyRelations<Types>> | undefined;
+      depthLimit?: <U extends TableNames<Types>>(
+        params: OperationParams<Types, U>
+      ) => number | undefined;
       executable?: <U extends TableNames<Types>>(
         params: OperationParams<Types, U>
       ) => boolean | undefined;
@@ -130,9 +133,6 @@ declare global {
       where?: <U extends TableNames<Types>>(
         params: OperationParams<Types, U>
       ) => WhereReturn<Types, any>;
-      inputFields?: <U extends TableNames<Types>>(
-        params: ModelParams<Types, U>
-      ) => IncludeExclude<AnyColumnsWithManyRelations<Types>> | undefined;
       inputData?: <U extends TableNames<Types>>(
         params: OperationParams<Types, U>
       ) =>
@@ -146,20 +146,20 @@ declare global {
       Types extends SchemaTypes,
       U extends TableNames<Types>
     > {
-      depthLimit?: (params: OperationParams<Types, U>) => number | undefined;
       fields?: (
         params: ModelParams<Types, U>
       ) => IncludeExclude<ColumnsWithManyRelations<Types, U>> | undefined;
       operations?: (params: ModelParams<Types, U>) => OperationSelection;
+      inputFields?: (
+        params: ModelParams<Types, U>
+      ) => IncludeExclude<ColumnsWithManyRelations<Types, U>> | undefined;
+      depthLimit?: (params: OperationParams<Types, U>) => number | undefined;
       executable?: (params: OperationParams<Types, U>) => boolean | undefined;
       limit?: (params: OperationParams<Types, U>) => number | undefined;
       orderBy?: (
         params: OperationParams<Types, U>
       ) => OrderByReturn<Types, Columns<Types, U>>;
       where?: (params: OperationParams<Types, U>) => WhereReturn<Types, U>;
-      inputFields?: (
-        params: ModelParams<Types, U>
-      ) => IncludeExclude<ColumnsWithManyRelations<Types, U>> | undefined;
       inputData?: (
         params: OperationParams<Types, U>
       ) => InputDataReturn<Types, U>;
