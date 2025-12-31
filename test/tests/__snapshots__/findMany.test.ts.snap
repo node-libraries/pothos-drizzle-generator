@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`findMany > findMany - Additional Scenarios > filters related posts within findManyUser 1`] = `
+exports[`findMany > filters related posts within findManyUser 1`] = `
 [
   {
     "__typename": "User",
@@ -285,9 +285,9 @@ exports[`findMany > findMany - Additional Scenarios > filters related posts with
 ]
 `;
 
-exports[`findMany > findMany - Additional Scenarios > filters users by email using eq operator 1`] = `[]`;
+exports[`findMany > filters users by email using eq operator 1`] = `[]`;
 
-exports[`findMany > findMany - Additional Scenarios > filters users by roles using arrayContains 1`] = `
+exports[`findMany > filters users by roles using arrayContains 1`] = `
 [
   {
     "__typename": "User",
@@ -628,7 +628,7 @@ exports[`findMany > findMany - Additional Scenarios > filters users by roles usi
 ]
 `;
 
-exports[`findMany > findMany - Additional Scenarios > filters users using NOT condition 1`] = `
+exports[`findMany > filters users using NOT condition 1`] = `
 [
   {
     "__typename": "User",
@@ -913,7 +913,7 @@ exports[`findMany > findMany - Additional Scenarios > filters users using NOT co
 ]
 `;
 
-exports[`findMany > findMany - Additional Scenarios > filters users with AND condition (name and email) 1`] = `
+exports[`findMany > filters users with AND condition (name and email) 1`] = `
 [
   {
     "__typename": "User",

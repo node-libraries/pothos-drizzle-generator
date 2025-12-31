@@ -14,11 +14,15 @@ import {
   type ModelData,
 } from "./generator.js";
 import {
+  isOperation,
+  OperationMutation,
+  type OperationBasic,
+} from "./libs/operations.js";
+import {
   createWhereQuery,
   getQueryDepth,
   getQueryFields,
 } from "./libs/utils.js";
-import type { OperationBasic } from "./libs/operations.js";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type {
@@ -317,7 +321,9 @@ export class PothosDrizzleGenerator<
       limit: limit?.({ modelName, ctx, operation }),
       where: where?.({ modelName, ctx, operation }),
       orderBy: orderBy?.({ modelName, ctx, operation }),
-      input: inputData?.({ modelName, ctx, operation }),
+      input: isOperation(OperationMutation, operation)
+        ? inputData?.({ modelName, ctx, operation })
+        : undefined,
     };
 
     if (
