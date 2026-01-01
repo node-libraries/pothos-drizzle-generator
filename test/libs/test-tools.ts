@@ -13,9 +13,13 @@ import { getContext } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { jwtVerify } from "jose";
 import PothosDrizzleGeneratorPlugin from "../../src/index";
-import type { HonoContext } from "../context";
 import type { Context } from "../context";
-import type { AnyRelations, EmptyRelations } from "drizzle-orm";
+import type {
+  AnyRelations,
+  EmptyRelations,
+  TablesRelationalConfig,
+} from "drizzle-orm";
+import type { Context as HonoContext } from "hono";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -24,7 +28,7 @@ if (!connectionString) {
 const url = new URL(connectionString);
 const searchPath = url.searchParams.get("schema") ?? "public";
 
-export const createDB = <TRelations extends AnyRelations = EmptyRelations>({
+export const createDB = <TRelations extends TablesRelationalConfig>({
   relations,
   isLog,
 }: {
@@ -69,19 +73,28 @@ export const createBuilder = <
 >({
   relations,
   pothosDrizzleGenerator,
+  onCreateBuilder,
 }: {
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
     PothosSchemaTypes.ExtendDefaultTypes<{
       DrizzleRelations: TRelations;
-      Context: HonoContext;
+      Context: HonoContext<Context>;
     }>
   >["pothosDrizzleGenerator"];
+  onCreateBuilder?: (
+    builder: PothosSchemaTypes.SchemaBuilder<
+      PothosSchemaTypes.ExtendDefaultTypes<{
+        DrizzleRelations: TRelations;
+        Context: HonoContext<Context>;
+      }>
+    >
+  ) => void;
 }) => {
   const db = createDB({ relations });
   const builder = new SchemaBuilder<{
     DrizzleRelations: TRelations;
-    Context: HonoContext;
+    Context: HonoContext<Context>;
   }>({
     plugins: [DrizzlePlugin, PothosDrizzleGeneratorPlugin],
     drizzle: {
@@ -91,12 +104,14 @@ export const createBuilder = <
     },
     pothosDrizzleGenerator,
   });
+  onCreateBuilder?.(builder);
   return { db, builder };
 };
 
 export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
   relations,
   pothosDrizzleGenerator,
+  onCreateBuilder,
 }: {
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
@@ -105,8 +120,20 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
       Context: HonoContext;
     }>
   >["pothosDrizzleGenerator"];
+  onCreateBuilder?: (
+    builder: PothosSchemaTypes.SchemaBuilder<
+      PothosSchemaTypes.ExtendDefaultTypes<{
+        DrizzleRelations: TRelations;
+        Context: HonoContext<Context>;
+      }>
+    >
+  ) => void;
 }) => {
-  const { builder, db } = createBuilder({ relations, pothosDrizzleGenerator });
+  const { builder, db } = createBuilder({
+    relations,
+    pothosDrizzleGenerator,
+    onCreateBuilder,
+  });
   const schema = builder.toSchema({ sortSchema: false });
 
   const app = new Hono<Context>();
@@ -137,6 +164,7 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
 export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
   relations,
   pothosDrizzleGenerator,
+  onCreateBuilder,
 }: {
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
@@ -145,14 +173,36 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
       Context: HonoContext;
     }>
   >["pothosDrizzleGenerator"];
+  onCreateBuilder?: (
+    builder: PothosSchemaTypes.SchemaBuilder<
+      PothosSchemaTypes.ExtendDefaultTypes<{
+        DrizzleRelations: TRelations;
+        Context: HonoContext<Context>;
+      }>
+    >
+  ) => void;
 }) => {
-  const { app, db, schema } = createApp({ relations, pothosDrizzleGenerator });
+  const { app, db, schema } = createApp({
+    relations,
+    pothosDrizzleGenerator,
+    onCreateBuilder,
+  });
+  let cookie = "";
   const client = new Client({
     url: "http://localhost/",
     exchanges: [cacheExchange, fetchExchange],
     fetch: async (url, options) => {
-      const req = new Request(url, { ...options, method: "post" });
-      return app.fetch(req);
+      const headers = new Headers(options?.headers);
+      if (cookie) {
+        headers.set("cookie", cookie);
+      }
+      const req = new Request(url, { ...options, method: "post", headers });
+      const res = await app.fetch(req);
+      const setCookie = res.headers.get("set-cookie");
+      if (setCookie) {
+        cookie = setCookie;
+      }
+      return res;
     },
     preferGetMethod: false,
   });

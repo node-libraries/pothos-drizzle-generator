@@ -1,0 +1,551 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`auth > auth user 1`] = `
+{
+  "data": {
+    "signIn": {
+      "__typename": "User",
+      "createdAt": "2023-08-12T13:04:28.457Z",
+      "email": "throbbing_tennesha@rediffmail.com",
+      "id": "2f5363b9-8fc3-482a-da6b-2d605fb782f1",
+      "name": "Candy",
+      "roles": [
+        "ADMIN",
+        "USER",
+        "ADMIN",
+        "ADMIN",
+        "USER",
+        "USER",
+        "USER",
+        "USER",
+        "ADMIN",
+        "USER",
+      ],
+      "updatedAt": "2022-12-18T21:17:45.180Z",
+    },
+  },
+  "error": undefined,
+  "extensions": undefined,
+  "hasNext": false,
+  "operation": {
+    "context": {
+      "_instance": 4,
+      "fetch": [Function],
+      "fetchOptions": undefined,
+      "fetchSubscriptions": undefined,
+      "meta": {
+        "cacheOutcome": "miss",
+      },
+      "preferGetMethod": false,
+      "requestPolicy": "cache-first",
+      "suspense": false,
+      "url": "http://localhost/",
+    },
+    "extensions": undefined,
+    "key": -13136328390,
+    "kind": "mutation",
+    "query": {
+      "definitions": [
+        {
+          "directives": undefined,
+          "kind": "FragmentDefinition",
+          "loc": {
+            "end": 77,
+            "source": {
+              "body": "fragment user on User {
+  id
+  email
+  name
+  roles
+  createdAt
+  updatedAt
+}",
+              "locationOffset": {
+                "column": 1,
+                "line": 1,
+              },
+              "name": "gql",
+            },
+            "start": 0,
+          },
+          "name": {
+            "kind": "Name",
+            "value": "user",
+          },
+          "selectionSet": {
+            "kind": "SelectionSet",
+            "selections": [
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "id",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "email",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "name",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "roles",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "createdAt",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "updatedAt",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "_generated": true,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "__typename",
+                },
+              },
+            ],
+          },
+          "typeCondition": {
+            "kind": "NamedType",
+            "name": {
+              "kind": "Name",
+              "value": "User",
+            },
+          },
+        },
+        {
+          "directives": undefined,
+          "kind": "OperationDefinition",
+          "name": {
+            "kind": "Name",
+            "value": "SignIn",
+          },
+          "operation": "mutation",
+          "selectionSet": {
+            "kind": "SelectionSet",
+            "selections": [
+              {
+                "alias": undefined,
+                "arguments": [
+                  {
+                    "kind": "Argument",
+                    "name": {
+                      "kind": "Name",
+                      "value": "email",
+                    },
+                    "value": {
+                      "kind": "Variable",
+                      "name": {
+                        "kind": "Name",
+                        "value": "email",
+                      },
+                    },
+                  },
+                ],
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "signIn",
+                },
+                "selectionSet": {
+                  "kind": "SelectionSet",
+                  "selections": [
+                    {
+                      "directives": undefined,
+                      "kind": "FragmentSpread",
+                      "name": {
+                        "kind": "Name",
+                        "value": "user",
+                      },
+                    },
+                    {
+                      "_generated": true,
+                      "kind": "Field",
+                      "name": {
+                        "kind": "Name",
+                        "value": "__typename",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          "variableDefinitions": [
+            {
+              "defaultValue": undefined,
+              "directives": undefined,
+              "kind": "VariableDefinition",
+              "type": {
+                "kind": "NamedType",
+                "name": {
+                  "kind": "Name",
+                  "value": "String",
+                },
+              },
+              "variable": {
+                "kind": "Variable",
+                "name": {
+                  "kind": "Name",
+                  "value": "email",
+                },
+              },
+            },
+          ],
+        },
+      ],
+      "kind": "Document",
+      "loc": {
+        "end": 155,
+        "source": {
+          "body": "fragment user on User {
+  id
+  email
+  name
+  roles
+  createdAt
+  updatedAt
+}
+mutation SignIn($email: String) {
+  signIn(email: $email) {
+    ...user
+  }
+}",
+          "locationOffset": {
+            "column": 1,
+            "line": 1,
+          },
+          "name": "gql",
+        },
+        "start": 0,
+      },
+    },
+    "variables": {
+      "email": "throbbing_tennesha@rediffmail.com",
+    },
+  },
+  "stale": false,
+}
+`;
+
+exports[`auth > auth user findMany 1`] = `
+{
+  "data": {
+    "signIn": {
+      "__typename": "User",
+      "createdAt": "2023-08-12T13:04:28.457Z",
+      "email": "throbbing_tennesha@rediffmail.com",
+      "id": "2f5363b9-8fc3-482a-da6b-2d605fb782f1",
+      "name": "Candy",
+      "roles": [
+        "ADMIN",
+        "USER",
+        "ADMIN",
+        "ADMIN",
+        "USER",
+        "USER",
+        "USER",
+        "USER",
+        "ADMIN",
+        "USER",
+      ],
+      "updatedAt": "2022-12-18T21:17:45.180Z",
+    },
+  },
+  "error": undefined,
+  "extensions": undefined,
+  "hasNext": false,
+  "operation": {
+    "context": {
+      "_instance": 4,
+      "fetch": [Function],
+      "fetchOptions": undefined,
+      "fetchSubscriptions": undefined,
+      "meta": {
+        "cacheOutcome": "miss",
+      },
+      "preferGetMethod": false,
+      "requestPolicy": "cache-first",
+      "suspense": false,
+      "url": "http://localhost/",
+    },
+    "extensions": undefined,
+    "key": -13136328390,
+    "kind": "mutation",
+    "query": {
+      "definitions": [
+        {
+          "directives": undefined,
+          "kind": "FragmentDefinition",
+          "loc": {
+            "end": 77,
+            "source": {
+              "body": "fragment user on User {
+  id
+  email
+  name
+  roles
+  createdAt
+  updatedAt
+}",
+              "locationOffset": {
+                "column": 1,
+                "line": 1,
+              },
+              "name": "gql",
+            },
+            "start": 0,
+          },
+          "name": {
+            "kind": "Name",
+            "value": "user",
+          },
+          "selectionSet": {
+            "kind": "SelectionSet",
+            "selections": [
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "id",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "email",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "name",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "roles",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "createdAt",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "alias": undefined,
+                "arguments": undefined,
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "updatedAt",
+                },
+                "selectionSet": undefined,
+              },
+              {
+                "_generated": true,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "__typename",
+                },
+              },
+            ],
+          },
+          "typeCondition": {
+            "kind": "NamedType",
+            "name": {
+              "kind": "Name",
+              "value": "User",
+            },
+          },
+        },
+        {
+          "directives": undefined,
+          "kind": "OperationDefinition",
+          "name": {
+            "kind": "Name",
+            "value": "SignIn",
+          },
+          "operation": "mutation",
+          "selectionSet": {
+            "kind": "SelectionSet",
+            "selections": [
+              {
+                "alias": undefined,
+                "arguments": [
+                  {
+                    "kind": "Argument",
+                    "name": {
+                      "kind": "Name",
+                      "value": "email",
+                    },
+                    "value": {
+                      "kind": "Variable",
+                      "name": {
+                        "kind": "Name",
+                        "value": "email",
+                      },
+                    },
+                  },
+                ],
+                "directives": undefined,
+                "kind": "Field",
+                "name": {
+                  "kind": "Name",
+                  "value": "signIn",
+                },
+                "selectionSet": {
+                  "kind": "SelectionSet",
+                  "selections": [
+                    {
+                      "directives": undefined,
+                      "kind": "FragmentSpread",
+                      "name": {
+                        "kind": "Name",
+                        "value": "user",
+                      },
+                    },
+                    {
+                      "_generated": true,
+                      "kind": "Field",
+                      "name": {
+                        "kind": "Name",
+                        "value": "__typename",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          "variableDefinitions": [
+            {
+              "defaultValue": undefined,
+              "directives": undefined,
+              "kind": "VariableDefinition",
+              "type": {
+                "kind": "NamedType",
+                "name": {
+                  "kind": "Name",
+                  "value": "String",
+                },
+              },
+              "variable": {
+                "kind": "Variable",
+                "name": {
+                  "kind": "Name",
+                  "value": "email",
+                },
+              },
+            },
+          ],
+        },
+      ],
+      "kind": "Document",
+      "loc": {
+        "end": 155,
+        "source": {
+          "body": "fragment user on User {
+  id
+  email
+  name
+  roles
+  createdAt
+  updatedAt
+}
+mutation SignIn($email: String) {
+  signIn(email: $email) {
+    ...user
+  }
+}",
+          "locationOffset": {
+            "column": 1,
+            "line": 1,
+          },
+          "name": "gql",
+        },
+        "start": 0,
+      },
+    },
+    "variables": {
+      "email": "throbbing_tennesha@rediffmail.com",
+    },
+  },
+  "stale": false,
+}
+`;
