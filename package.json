@@ -24,7 +24,7 @@
     "explorer": "tsx --watch test/tools/explorer"
   },
   "dependencies": {
-    "@pothos/core": "^4.10.1",
+    "@pothos/core": "^4.12.0",
     "@pothos/plugin-drizzle": "^0.16.1",
     "drizzle-orm": "1.0.0-beta.6-4414a19",
     "graphql": "^16.12.0",
