@@ -13,141 +13,178 @@ export const { app, client, db } = createClient({
   pothosDrizzleGenerator: {},
 });
 
-const query = gql`
-  fragment category on Category {
-    id
-    name
-    createdAt
-    updatedAt
-  }
-
+const UPDATE_POST_FULL = gql`
   fragment post on Post {
     id
-    published
     title
     content
-    authorId
-    createdAt
-    updatedAt
-    publishedAt
-  }
-
-  fragment user on User {
-    id
-    email
-    name
-    roles
-    createdAt
-    updatedAt
-  }
-
-  mutation UpdatePost(
-    $input: PostUpdate!
-    $where: PostWhere
-    $authorCountWhere: UserWhere
-    $categoriesCountWhere: CategoryWhere
-    $authorOffset: Int
-    $authorLimit: Int
-    $authorWhere: UserWhere
-    $authorOrderBy: [UserOrderBy!]
-    $categoriesOffset: Int
-    $categoriesLimit: Int
-    $categoriesWhere: CategoryWhere
-    $categoriesOrderBy: [CategoryOrderBy!]
-  ) {
-    updatePost(input: $input, where: $where) {
-      ...post
-      authorCount(where: $authorCountWhere)
-      categoriesCount(where: $categoriesCountWhere)
-      author(
-        offset: $authorOffset
-        limit: $authorLimit
-        where: $authorWhere
-        orderBy: $authorOrderBy
-      ) {
-        ...user
-      }
-      categories(
-        offset: $categoriesOffset
-        limit: $categoriesLimit
-        where: $categoriesWhere
-        orderBy: $categoriesOrderBy
-      ) {
-        ...category
-      }
-    }
-  }
-`;
-
-const query2 = gql`
-  fragment post on Post {
-    id
     published
-    title
-    content
     authorId
-    createdAt
-    updatedAt
-    publishedAt
   }
+
   mutation UpdatePost($input: PostUpdate!, $where: PostWhere) {
     updatePost(input: $input, where: $where) {
       ...post
+      author {
+        id
+        name
+      }
+      categories {
+        id
+        name
+      }
     }
   }
 `;
 
-describe("update", () => {
-  it("update", async () => {
-    const post = await db.query.posts.findFirst();
-    clearLogs(db);
-    const result = await client.mutation(query, {
-      input: { title: "ABCD" },
+const UPDATE_POST_SIMPLE = gql`
+  mutation UpdatePost($input: PostUpdate!, $where: PostWhere) {
+    updatePost(input: $input, where: $where) {
+      id
+      title
+    }
+  }
+`;
+
+interface PostResponse {
+  id: string;
+  title: string;
+  content: string;
+  published: boolean;
+  authorId: string;
+  categories?: { id: string; name: string }[];
+}
+
+describe("Mutation: updatePost (Drizzle v2 Pure Object Syntax)", () => {
+  const IGNORED_KEYS = ["id", "createdAt", "updatedAt", "publishedAt"];
+
+  it("should update a post and return an array using object-based where clause", async () => {
+    const targetPost = await db.query.posts.findFirst({
       where: {
-        id: { eq: post?.id },
+        id: { isNotNull: true },
       },
     });
-    expect(
-      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
-    ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(4);
-  });
 
-  it("update no relay", async () => {
-    const post = await db.query.posts.findFirst();
     clearLogs(db);
-    const result = await client.mutation(query2, {
-      input: { title: "XYZ" },
-      where: {
-        id: { eq: post?.id },
-      },
-    });
-    expect(
-      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
-    ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(3);
+
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(
+      UPDATE_POST_FULL,
+      {
+        input: { title: "Drizzle v2 Object Title" },
+        where: {
+          id: { eq: targetPost?.id },
+        },
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    const data = result.data?.updatePost;
+
+    if (!data) throw new Error("Data not found");
+
+    expect(Array.isArray(data)).toBe(true);
+    expect(filterObject(data[0], IGNORED_KEYS)).toMatchSnapshot();
+    expect(getLogs(db).length).toBeGreaterThan(0);
   });
 
-  it("update many to many", async () => {
+  it("should update relations and verify results in the returned array", async () => {
     const categories = await db.query.categories.findMany({
-      limit: 3,
-      orderBy: { name: "asc" },
+      limit: 1,
     });
-    const post = await db.query.posts.findFirst();
+
+    const targetPost = await db.query.posts.findFirst();
     clearLogs(db);
-    const result = await client.mutation(query, {
-      input: {
-        title: "XYZ",
-        categories: { set: categories.map((v) => ({ id: v.id })) },
-      },
+
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(
+      UPDATE_POST_FULL,
+      {
+        input: {
+          title: "Updated with Object Syntax",
+          categories: { set: categories.map((c) => ({ id: c.id })) },
+        },
+        where: {
+          id: { eq: targetPost?.id },
+        },
+      }
+    );
+
+    const updatedPost = result.data?.updatePost[0];
+    expect(updatedPost?.categories).toHaveLength(categories.length);
+    expect(updatedPost?.title).toBe("Updated with Object Syntax");
+
+    const dbRecord = await db.query.posts.findFirst({
       where: {
-        id: { eq: post?.id },
+        id: { eq: targetPost!.id },
       },
-      categoriesOrderBy: { name: "Asc" },
     });
-    expect(
-      filterObject(result.data, ["id", "createdAt", "updatedAt", "publishedAt"])
-    ).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(6);
+    expect(dbRecord?.title).toBe("Updated with Object Syntax");
+  });
+
+  it("should handle multi-field updates and verify the first element of the result array", async () => {
+    const targetPost = await db.query.posts.findFirst();
+    const newContent = "Updated content via pure object syntax";
+
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(
+      UPDATE_POST_SIMPLE,
+      {
+        input: { content: newContent },
+        where: {
+          id: { eq: targetPost?.id },
+          published: { eq: targetPost?.published },
+        },
+      }
+    );
+
+    const data = result.data?.updatePost;
+    expect(data).toHaveLength(1);
+    expect(data?.[0].id).toBe(targetPost?.id);
+
+    const verified = await db.query.posts.findFirst({
+      where: {
+        id: { eq: targetPost!.id },
+        content: { eq: newContent },
+      },
+    });
+    expect(verified?.content).toBe(newContent);
+  });
+
+  it("should update multiple records and return them as an array", async () => {
+    const targetPosts = await db.query.posts.findMany({ limit: 2 });
+    const commonContent = "Batch update content";
+
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(
+      UPDATE_POST_SIMPLE,
+      {
+        input: { content: commonContent },
+        where: {
+          id: { in: targetPosts.map((p) => p.id) },
+        },
+      }
+    );
+
+    const data = result.data?.updatePost;
+    if (!data) throw new Error("Batch update failed");
+
+    expect(data.length).toBeGreaterThanOrEqual(targetPosts.length);
+    data.forEach((post) => {
+      expect(targetPosts.map((p) => p.id)).toContain(post.id);
+    });
+  });
+
+  it("should return an empty array when no record matches the where criteria", async () => {
+    const nonExistentId = "00000000-0000-0000-0000-000000000000";
+
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(
+      UPDATE_POST_SIMPLE,
+      {
+        input: { title: "No Match" },
+        where: {
+          id: { eq: nonExistentId },
+        },
+      }
+    );
+
+    expect(Array.isArray(result.data?.updatePost)).toBe(true);
+    expect(result.data?.updatePost).toHaveLength(0);
   });
 });

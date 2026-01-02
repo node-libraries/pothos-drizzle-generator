@@ -1,5 +1,24 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Mutation: createManyPost (Drizzle v2 Pure Object Syntax) > should create multiple posts and return an array of created records 1`] = `
+[
+  {
+    "__typename": "Post",
+    "authorId": "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+    "content": "Content 1",
+    "published": true,
+    "title": "Bulk Post 1",
+  },
+  {
+    "__typename": "Post",
+    "authorId": "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+    "content": "Content 2",
+    "published": false,
+    "title": "Bulk Post 2",
+  },
+]
+`;
+
 exports[`createMany > create 1`] = `
 {
   "createManyPost": [
@@ -56,6 +75,93 @@ exports[`createMany > create 1`] = `
       "content": "Test2",
       "published": false,
       "title": "title2",
+    },
+  ],
+}
+`;
+
+exports[`createMany > createMany may to many 1`] = `
+{
+  "createManyPost": [
+    {
+      "__typename": "Post",
+      "author": {
+        "__typename": "User",
+        "email": "residual_carroll@hotmail.fr",
+        "name": "Agripina",
+        "roles": [
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "USER",
+          "ADMIN",
+          "USER",
+          "USER",
+          "ADMIN",
+          "ADMIN",
+        ],
+      },
+      "authorCount": 1,
+      "authorId": "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+      "categories": [
+        {
+          "__typename": "Category",
+          "name": "Aukai",
+        },
+        {
+          "__typename": "Category",
+          "name": "Clotile",
+        },
+        {
+          "__typename": "Category",
+          "name": "Lia",
+        },
+      ],
+      "categoriesCount": 3,
+      "content": "Test",
+      "published": true,
+      "title": "createMany",
+    },
+    {
+      "__typename": "Post",
+      "author": {
+        "__typename": "User",
+        "email": "residual_carroll@hotmail.fr",
+        "name": "Agripina",
+        "roles": [
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "ADMIN",
+          "USER",
+          "ADMIN",
+          "USER",
+          "USER",
+          "ADMIN",
+          "ADMIN",
+        ],
+      },
+      "authorCount": 1,
+      "authorId": "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+      "categories": [
+        {
+          "__typename": "Category",
+          "name": "Aukai",
+        },
+        {
+          "__typename": "Category",
+          "name": "Clotile",
+        },
+        {
+          "__typename": "Category",
+          "name": "Lia",
+        },
+      ],
+      "categoriesCount": 3,
+      "content": "Test2",
+      "published": false,
+      "title": "createMany2",
     },
   ],
 }

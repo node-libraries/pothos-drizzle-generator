@@ -1,5 +1,19 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Mutation: createOnePost (Drizzle v2 Pure Object Syntax) > should create a single post with non-null fields and return the created record 1`] = `
+{
+  "__typename": "Post",
+  "author": {
+    "__typename": "User",
+    "name": "Agripina",
+  },
+  "authorId": "3e0bb3d0-2074-4a1e-6263-d13dd10cb0cf",
+  "content": "Required Content Body",
+  "published": true,
+  "title": "New Single Post",
+}
+`;
+
 exports[`createOne > create 1`] = `
 {
   "createOnePost": {

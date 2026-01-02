@@ -1,28 +1,34 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`update > update 1`] = `
+exports[`Mutation: updatePost (Drizzle v2 Pure Object Syntax) > should update a post and return an array using object-based where clause 1`] = `
+{
+  "__typename": "Post",
+  "author": {
+    "__typename": "User",
+    "name": "Duron",
+  },
+  "authorId": "72a4319b-5442-4aa6-83ee-52dca5b34731",
+  "categories": [
+    {
+      "__typename": "Category",
+      "name": "Lia",
+    },
+  ],
+  "content": "HxnMZYUUVi",
+  "published": false,
+  "title": "Drizzle v2 Object Title",
+}
+`;
+
+exports[`Mutation: updatePost (Drizzle v2 Pure Object Syntax) > should update a post using object-based where clause 1`] = `
 {
   "updatePost": [
     {
       "__typename": "Post",
       "author": {
         "__typename": "User",
-        "email": "proactive_esha@outlook.com",
         "name": "Duron",
-        "roles": [
-          "ADMIN",
-          "ADMIN",
-          "USER",
-          "USER",
-          "USER",
-          "ADMIN",
-          "ADMIN",
-          "USER",
-          "ADMIN",
-          "ADMIN",
-        ],
       },
-      "authorCount": 1,
       "authorId": "72a4319b-5442-4aa6-83ee-52dca5b34731",
       "categories": [
         {
@@ -30,71 +36,9 @@ exports[`update > update 1`] = `
           "name": "Lia",
         },
       ],
-      "categoriesCount": 1,
       "content": "HxnMZYUUVi",
       "published": false,
-      "title": "ABCD",
-    },
-  ],
-}
-`;
-
-exports[`update > update many to many 1`] = `
-{
-  "updatePost": [
-    {
-      "__typename": "Post",
-      "author": {
-        "__typename": "User",
-        "email": "nerve-racking_aitan@gmail.com",
-        "name": "Laylani",
-        "roles": [
-          "USER",
-          "USER",
-          "ADMIN",
-          "ADMIN",
-          "ADMIN",
-          "ADMIN",
-          "USER",
-          "ADMIN",
-          "USER",
-          "ADMIN",
-        ],
-      },
-      "authorCount": 1,
-      "authorId": "3b23d30c-f359-42bd-0656-eaf4561a9cd0",
-      "categories": [
-        {
-          "__typename": "Category",
-          "name": "Aukai",
-        },
-        {
-          "__typename": "Category",
-          "name": "Clotile",
-        },
-        {
-          "__typename": "Category",
-          "name": "Lia",
-        },
-      ],
-      "categoriesCount": 3,
-      "content": "dYZa0c5FsC",
-      "published": true,
-      "title": "XYZ",
-    },
-  ],
-}
-`;
-
-exports[`update > update no relay 1`] = `
-{
-  "updatePost": [
-    {
-      "__typename": "Post",
-      "authorId": "ab2f7431-0e7a-4ebf-def0-728a4e5a8f59",
-      "content": "zHE2MmHT4vA2yLu",
-      "published": true,
-      "title": "XYZ",
+      "title": "Drizzle v2 Object Title",
     },
   ],
 }
