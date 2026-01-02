@@ -197,13 +197,14 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
         headers.set("cookie", cookie);
       }
       const req = new Request(url, { ...options, method: "post", headers });
-      const res = await app.fetch(req);
+      const res = await app.fetch(req, options);
       const setCookie = res.headers.get("set-cookie");
       if (setCookie) {
         cookie = setCookie;
       }
       return res;
     },
+    requestPolicy: "network-only",
     preferGetMethod: false,
   });
   return { app, client, db, schema };
