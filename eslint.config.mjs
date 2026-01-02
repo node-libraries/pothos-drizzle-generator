@@ -16,6 +16,8 @@ export default [
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "warn",
+      "no-empty-pattern": 1,
+      "no-empty": 1,
       "import/order": [
         "warn",
         {

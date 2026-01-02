@@ -13,7 +13,7 @@
     "build": "tsc && tsc -p ./tsconfig.esm.json && cpy esm dist",
     "watch": "tsc -b -w",
     "lint": "eslint ./src",
-    "lint:fix": "eslint --fix ./src",
+    "lint:fix": "eslint --fix ./src ./test",
     "test:actions": "pnpm run test:reset && pnpm run test:migrate && vitest run --coverage",
     "test:watch": "pnpm run test:reset && pnpm run test:migrate && vitest --coverage",
     "test:docker": "docker compose -f test/docker/docker-compose.yml up -d",

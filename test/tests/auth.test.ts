@@ -1,10 +1,9 @@
 import { gql } from "@urql/core";
-import { sql } from "drizzle-orm";
-import { describe, it, expect, afterAll, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { isOperation, OperationMutation, OperationQuery } from "../../src";
 import { relations } from "../db/relations";
 import { onCreateBuilder } from "../libs/test-operations";
-import { clearLogs, createClient, getLogs } from "../libs/test-tools";
+import { createClient } from "../libs/test-tools";
 
 const mutationMe = gql`
   fragment user on User {
@@ -74,16 +73,6 @@ const mutationDeletePost = gql`
   mutation DeletePost($where: PostWhere) {
     deletePost(where: $where) {
       id
-    }
-  }
-`;
-
-const queryFindFirstPost = gql`
-  query FindFirstPost($where: PostWhere) {
-    findFirstPost(where: $where) {
-      id
-      published
-      authorId
     }
   }
 `;
