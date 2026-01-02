@@ -1,5 +1,4 @@
 import * as p from "drizzle-orm";
-import type { InputType } from "@pothos/core";
 import type { GraphQLResolveInfo, FieldNode, SelectionNode } from "graphql";
 
 function getDepthFromSelection(
