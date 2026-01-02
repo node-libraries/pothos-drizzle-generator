@@ -15,8 +15,8 @@ function getDepthFromSelection(
 }
 
 export function getQueryDepth(info: GraphQLResolveInfo): number {
-  if (!info.fieldNodes[0]) return 0;
-  return getDepthFromSelection(info.fieldNodes[0], 0);
+  if (!info.fieldNodes[0]) return 1;
+  return getDepthFromSelection(info.fieldNodes[0], 1);
 }
 
 export interface FieldTree {

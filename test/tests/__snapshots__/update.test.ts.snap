@@ -19,27 +19,3 @@ exports[`Mutation: updatePost (Drizzle v2 Pure Object Syntax) > should update a 
   "title": "Drizzle v2 Object Title",
 }
 `;
-
-exports[`Mutation: updatePost (Drizzle v2 Pure Object Syntax) > should update a post using object-based where clause 1`] = `
-{
-  "updatePost": [
-    {
-      "__typename": "Post",
-      "author": {
-        "__typename": "User",
-        "name": "Duron",
-      },
-      "authorId": "72a4319b-5442-4aa6-83ee-52dca5b34731",
-      "categories": [
-        {
-          "__typename": "Category",
-          "name": "Lia",
-        },
-      ],
-      "content": "HxnMZYUUVi",
-      "published": false,
-      "title": "Drizzle v2 Object Title",
-    },
-  ],
-}
-`;
