@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Query: findManyPost (Drizzle v2 Pure Object Syntax) > should retrieve posts using object-based where clause 1`] = `
+{
+  "__typename": "Post",
+  "author": {
+    "__typename": "User",
+    "name": "Duron",
+  },
+  "authorId": "72a4319b-5442-4aa6-b3ee-52dca5b34731",
+  "categories": [
+    {
+      "__typename": "Category",
+      "name": "Lia",
+    },
+  ],
+  "content": "HxnMZYUUVi",
+  "published": false,
+  "title": "BTsJpmtUOPR6c",
+}
+`;

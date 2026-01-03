@@ -138,7 +138,7 @@ const { client, db } = createClient({
           }
           // isOperation(OperationMutation, ...) を使用
           if (isOperation(OperationMutation, operation)) {
-            return { authorId: { eq: ctx.get("user")?.id } };
+            return { authorId: ctx.get("user")?.id };
           }
         },
       },

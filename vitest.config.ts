@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { alias: { graphql: "graphql/index.js" } },
   test: {
     fileParallelism: false,
-    include: ["test/**/*.test.ts"],
+    include: ["test/tests/*.test.ts"],
     setupFiles: ["test/tools/seed.ts"],
     coverage: {
       include: ["src/**/*.{ts,tsx}"],

@@ -44,3 +44,9 @@ export const isOperation = (
 ) => {
   return operations.includes(operation);
 };
+
+export const isOperationInclude = (a: Operation[], b: Operation) => {
+  const aOperations = new Set(expandOperations(a));
+  const bOperations = expandOperations([b]);
+  return bOperations.every((v) => aOperations.has(v));
+};

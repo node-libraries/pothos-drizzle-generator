@@ -11,7 +11,6 @@
   },
   "scripts": {
     "build": "tsc && tsc -p ./tsconfig.esm.json && cpy esm dist",
-    "watch": "tsc -b -w",
     "lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src ./test",
     "test:actions": "pnpm run test:reset && pnpm run test:migrate && vitest run --coverage",

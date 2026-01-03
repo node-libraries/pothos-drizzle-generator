@@ -1,20 +1,16 @@
 import { graphqlServer } from "@hono/graphql-server";
-import SchemaBuilder, { type NormalizeSchemeBuilderOptions } from "@pothos/core";
+import SchemaBuilder from "@pothos/core";
 import DrizzlePlugin from "@pothos/plugin-drizzle";
 import { Client, cacheExchange, fetchExchange, gql } from "@urql/core";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
-import { isObjectType, type GraphQLSchema } from "graphql";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
-import { getContext } from "hono/context-storage";
-import { getCookie } from "hono/cookie";
-import { jwtVerify } from "jose";
 import { describe, expect, it } from "vitest";
-import PothosDrizzleGeneratorPlugin from "../../src/index";
-import { relations } from "../db/relations";
-import type { Context } from "../context";
-import type { AnyRelations, EmptyRelations, TablesRelationalConfig } from "drizzle-orm";
+import PothosDrizzleGeneratorPlugin from "../../../src";
+import { relations } from "../../db/relations";
+import type { Context } from "../../context";
+import type { TablesRelationalConfig } from "drizzle-orm";
 import type { Context as HonoContext } from "hono";
 
 /**
