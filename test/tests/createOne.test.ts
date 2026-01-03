@@ -1,9 +1,10 @@
 import { gql } from "@urql/core";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { relations } from "../db/relations";
-import { clearLogs, createClient, filterObject, getLogs } from "../libs/test-tools";
+import { clearLogs, createClient, filterObject, getLogs, getSearchPath } from "../libs/test-tools";
 
-export const { app, client, db } = createClient({
+export const { app, client, db, resetSchema } = createClient({
+  searchPath: getSearchPath(import.meta.url),
   relations,
   pothosDrizzleGenerator: {},
 });
@@ -45,6 +46,10 @@ interface PostResponse {
 
 describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
   const IGNORED_KEYS = ["id", "createdAt", "updatedAt", "publishedAt"];
+
+  beforeAll(async () => {
+    await resetSchema();
+  });
 
   it("should create a single post with non-null fields and return the created record", async () => {
     // Drizzle v2: 純粋なオブジェクトによる取得

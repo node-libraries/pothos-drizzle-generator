@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { OperationQuery } from "../../../src";
-import { relations } from "../../db/relations";
-import { createApp, getGraphqlModels, getGraphqlOperations } from "../../libs/test-tools";
+import { OperationQuery } from "../../src";
+import { relations } from "../db/relations";
+import { createApp, getGraphqlModels, getGraphqlOperations } from "../libs/test-tools";
 
 describe("GraphQL Schema Generation", () => {
   describe("Operation Filtering (Include/Exclude)", () => {

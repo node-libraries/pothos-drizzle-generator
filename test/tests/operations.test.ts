@@ -10,7 +10,7 @@ import {
   OperationMutation,
   OperationQuery,
   OperationUpdate,
-} from "../../../src/libs/operations";
+} from "../../src/libs/operations";
 
 describe("operations", () => {
   describe("expandOperations", () => {

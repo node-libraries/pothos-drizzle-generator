@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { reset, seed } from "drizzle-seed";
 import { relations } from "../db/relations.js";
 import * as schema from "../db/schema.js";
@@ -19,11 +20,12 @@ async function main() {
     },
     relations,
   });
-  db.transaction(async (tx) => {
+  // await db.execute(`drop schema ${searchPath} cascade`).catch(() => {});
+  await migrate(db, { migrationsFolder: "./test/drizzle", migrationsSchema: searchPath });
+  await db.transaction(async (tx) => {
     await reset(tx, schema);
     await seed(tx, schema);
   });
-
-  db.$client.end();
+  await db.$client.end();
 }
-main();
+await main();

@@ -1,9 +1,9 @@
 import { gql } from "@urql/core";
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { isOperation, OperationMutation, OperationQuery } from "../../src";
 import { relations } from "../db/relations";
 import { onCreateBuilder } from "../libs/test-operations";
-import { createClient } from "../libs/test-tools";
+import { createClient, getSearchPath } from "../libs/test-tools";
 
 // GraphQL Fragments & Mutations
 const USER_FRAGMENT = gql`
@@ -105,7 +105,8 @@ interface PostResponse {
   authorId: string;
 }
 
-const { client, db } = createClient({
+const { client, db, resetSchema } = createClient({
+  searchPath: getSearchPath(import.meta.url),
   onCreateBuilder,
   relations,
   pothosDrizzleGenerator: {
@@ -147,6 +148,9 @@ const { client, db } = createClient({
 });
 
 describe("Authentication and Authorization Tests", () => {
+  beforeAll(async () => {
+    await resetSchema();
+  });
   afterEach(async () => {
     await client.mutation(MUTATION_SIGN_OUT, {});
   });

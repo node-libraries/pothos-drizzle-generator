@@ -7,9 +7,9 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { describe, expect, it } from "vitest";
-import PothosDrizzleGeneratorPlugin from "../../../src";
-import { relations } from "../../db/relations";
-import type { Context } from "../../context";
+import PothosDrizzleGeneratorPlugin from "../../src";
+import { relations } from "../db/relations";
+import type { Context } from "../context";
 import type { TablesRelationalConfig } from "drizzle-orm";
 import type { Context as HonoContext } from "hono";
 

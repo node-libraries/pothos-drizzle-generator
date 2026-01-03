@@ -1,7 +1,7 @@
 import { gql } from "@urql/core";
 import { describe, it, expect } from "vitest";
-import { relations } from "../../db/relations";
-import { createClient } from "../../libs/test-tools";
+import { relations } from "../db/relations";
+import { createClient } from "../libs/test-tools";
 
 export const { app, client, db } = createClient({
   relations,

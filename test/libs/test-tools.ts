@@ -1,9 +1,13 @@
+import { parse } from "node:path";
+import { fileURLToPath } from "node:url";
 import { graphqlServer } from "@hono/graphql-server";
 import SchemaBuilder, { type NormalizeSchemeBuilderOptions } from "@pothos/core";
 import DrizzlePlugin from "@pothos/plugin-drizzle";
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { getTableConfig } from "drizzle-orm/pg-core";
+import { reset, seed } from "drizzle-seed";
 import { isObjectType, type GraphQLSchema } from "graphql";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
@@ -11,6 +15,7 @@ import { getContext } from "hono/context-storage";
 import { getCookie } from "hono/cookie";
 import { jwtVerify } from "jose";
 import PothosDrizzleGeneratorPlugin from "../../src/index";
+import * as schema from "../db/schema.js";
 import type { Context } from "../context";
 import type { AnyRelations, EmptyRelations, TablesRelationalConfig } from "drizzle-orm";
 import type { Context as HonoContext } from "hono";
@@ -19,15 +24,14 @@ const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
-const url = new URL(connectionString);
-const searchPath = url.searchParams.get("schema") ?? "public";
-
 export const createDB = <TRelations extends TablesRelationalConfig>({
   relations,
   isLog,
+  searchPath,
 }: {
   relations: TRelations;
   isLog?: boolean;
+  searchPath: string;
 }) => {
   const logs: { query: string; params: unknown[] }[] = [];
   const db = drizzle({
@@ -49,14 +53,21 @@ export const createDB = <TRelations extends TablesRelationalConfig>({
       },
     },
   });
+  const resetSchema = async () => {
+    await db.execute(`drop schema ${searchPath} cascade`).catch(() => {});
+    await migrate(db, { migrationsFolder: "./test/drizzle", migrationsSchema: searchPath });
+    await db.transaction(async (tx) => {
+      await seed(tx, schema);
+    });
+  };
   (db as typeof db & { _logs: typeof logs })._logs = logs;
-  return db as typeof db & { _logs: typeof logs };
+  return { resetSchema, db: db as typeof db & { _logs: typeof logs } };
 };
 
-export const clearLogs = (db: ReturnType<typeof createDB>) => {
+export const clearLogs = (db: ReturnType<typeof createDB>["db"]) => {
   db._logs.splice(0);
 };
-export const getLogs = (db: ReturnType<typeof createDB>) => {
+export const getLogs = (db: ReturnType<typeof createDB>["db"]) => {
   return db._logs;
 };
 
@@ -64,7 +75,9 @@ export const createBuilder = <TRelations extends AnyRelations = EmptyRelations>(
   relations,
   pothosDrizzleGenerator,
   onCreateBuilder,
+  searchPath,
 }: {
+  searchPath: string;
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
     PothosSchemaTypes.ExtendDefaultTypes<{
@@ -81,7 +94,7 @@ export const createBuilder = <TRelations extends AnyRelations = EmptyRelations>(
     >
   ) => void;
 }) => {
-  const db = createDB({ relations });
+  const { resetSchema, db } = createDB({ relations, searchPath });
   const builder = new SchemaBuilder<{
     DrizzleRelations: TRelations;
     Context: HonoContext<Context>;
@@ -94,14 +107,16 @@ export const createBuilder = <TRelations extends AnyRelations = EmptyRelations>(
     pothosDrizzleGenerator,
   });
   onCreateBuilder?.(builder);
-  return { db, builder };
+  return { resetSchema, db, builder };
 };
 
 export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
+  searchPath,
   relations,
   pothosDrizzleGenerator,
   onCreateBuilder,
 }: {
+  searchPath: string;
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
     PothosSchemaTypes.ExtendDefaultTypes<{
@@ -118,7 +133,8 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
     >
   ) => void;
 }) => {
-  const { builder, db } = createBuilder({
+  const { builder, resetSchema, db } = createBuilder({
+    searchPath,
     relations,
     pothosDrizzleGenerator,
     onCreateBuilder,
@@ -146,15 +162,18 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
   return {
     app,
     schema,
+    resetSchema,
     db,
   };
 };
 
 export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
+  searchPath,
   relations,
   pothosDrizzleGenerator,
   onCreateBuilder,
 }: {
+  searchPath: string;
   relations: TRelations;
   pothosDrizzleGenerator?: NormalizeSchemeBuilderOptions<
     PothosSchemaTypes.ExtendDefaultTypes<{
@@ -171,7 +190,8 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     >
   ) => void;
 }) => {
-  const { app, db, schema } = createApp({
+  const { app, db, resetSchema, schema } = createApp({
+    searchPath,
     relations,
     pothosDrizzleGenerator,
     onCreateBuilder,
@@ -196,7 +216,7 @@ export const createClient = <TRelations extends AnyRelations = EmptyRelations>({
     requestPolicy: "network-only",
     preferGetMethod: false,
   });
-  return { app, client, db, schema };
+  return { app, client, db, resetSchema, schema };
 };
 
 export function filterObject(obj: object, keys: string[]): object {
@@ -231,4 +251,11 @@ export const getGraphqlModels = (schema: GraphQLSchema) => {
       ? [v]
       : []
   );
+};
+
+export const getSearchPath = (url: string) => {
+  const filePath = fileURLToPath(url);
+  return parse(filePath)
+    .name.toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_");
 };
