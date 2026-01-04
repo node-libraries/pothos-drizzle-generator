@@ -10,7 +10,6 @@ import {
   ByteResolver,
   DateResolver,
   DateTimeResolver,
-  HexadecimalResolver,
   JSONResolver,
 } from "graphql-scalars";
 import { expandOperations, OperationBasic } from "./libs/operations.js";
@@ -342,7 +341,6 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
       ["Bytes", ByteResolver],
       ["DateTime", DateTimeResolver],
       ["Json", JSONResolver],
-      ["Decimal", HexadecimalResolver],
     ] as const;
     for (const [scalarName, scalarResolver] of scalars) {
       if (!builder.configStore.hasConfig(scalarName)) {
@@ -359,38 +357,42 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
   }
   getDataType(column: PgColumn): string | [string] {
     const isArray = column.dataType.split(" ")[0] === "array";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const c = isArray ? (column as PgArray<any, any>).baseColumn : column;
+    const c = isArray ? ((column as PgArray<never, never>).baseColumn ?? column) : column;
     const types = c.dataType.split(" ");
-
+    if (types[0] === "string" && types[1] !== "enum") {
+      return isArray ? ["String"] : "String";
+    }
+    if (types[0] === "bigint") {
+      return isArray ? ["BigInt"] : "BigInt";
+    }
     switch (types[1] ?? types[0]) {
       case "enum": {
         const sqlType = c.getSQLType();
         const e = this.enums[sqlType];
         if (!e) {
           this.enums[sqlType] = this.builder.enumType(sqlType, {
-            values: c.enumValues ?? [],
+            values: c.enumValues!,
           });
         }
         return isArray ? [sqlType] : sqlType;
       }
+      case "buffer":
+        return isArray ? ["Bytes"] : "Bytes";
       case "json":
         return isArray ? ["Json"] : "Json";
       case "date":
         return isArray ? ["DateTime"] : "DateTime";
-      case "datetime":
-        return isArray ? ["DateTime"] : "DateTime";
       case "boolean":
         return isArray ? ["Boolean"] : "Boolean";
+      case "point":
       case "double":
-      case "float":
-      case "udouble":
-      case "ufloat":
         return isArray ? ["Float"] : "Float";
+    }
+    if (types[1]?.startsWith("int")) {
+      return isArray ? ["Int"] : "Int";
     }
     const type = isArray ? types[1]! : types[0]!;
     const scalerMap: Record<string, string> = {
-      bigint: "BigInt",
       number: "Float",
       string: "String",
     };

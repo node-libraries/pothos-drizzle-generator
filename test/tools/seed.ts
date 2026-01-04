@@ -24,7 +24,7 @@ async function main() {
   await migrate(db, { migrationsFolder: "./test/drizzle", migrationsSchema: searchPath });
   await db.transaction(async (tx) => {
     await reset(tx, schema);
-    await seed(tx, schema);
+    await seed(tx, Object.fromEntries(Object.entries(schema).filter(([k]) => k !== "test")));
   });
   await db.$client.end();
 }

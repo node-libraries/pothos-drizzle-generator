@@ -56,7 +56,9 @@ export const createDB = <TRelations extends TablesRelationalConfig>({
   const resetSchema = async () => {
     await db.execute(`drop schema ${searchPath} cascade`).catch(() => {});
     await migrate(db, { migrationsFolder: "./test/drizzle", migrationsSchema: searchPath });
-    await seed(db, schema);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { test, ...s } = schema;
+    await seed(db, s);
   };
   const dropSchema = async () => {
     await db.execute(`drop schema ${searchPath} cascade`).catch(() => {});

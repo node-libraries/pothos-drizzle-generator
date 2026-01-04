@@ -1,9 +1,18 @@
-import { pgTable, uuid, text, boolean, timestamp, pgEnum, primaryKey } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  pgEnum,
+  primaryKey,
+  uuid,
+  text,
+  boolean,
+  timestamp,
+  bigint,
+} from "drizzle-orm/pg-core";
 
-// Enum 定義
+import * as p from "drizzle-orm/pg-core";
+
 export const roleEnum = pgEnum("Role", ["ADMIN", "USER"]);
 
-// User テーブル
 export const users = pgTable("User", {
   id: uuid().defaultRandom().primaryKey(),
   email: text().notNull().unique(),
@@ -13,7 +22,6 @@ export const users = pgTable("User", {
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
 
-// Post テーブル
 export const posts = pgTable("Post", {
   id: uuid().defaultRandom().primaryKey(),
   published: boolean().notNull().default(false),
@@ -25,7 +33,6 @@ export const posts = pgTable("Post", {
   publishedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
 
-// Category テーブル
 export const categories = pgTable("Category", {
   id: uuid().defaultRandom().primaryKey(),
   name: text().notNull(),
@@ -33,7 +40,6 @@ export const categories = pgTable("Category", {
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
 
-// 中間テーブル (Post-Category 多対多)
 export const postsToCategories = pgTable(
   "PostToCategory",
   {
@@ -48,3 +54,48 @@ export const postsToCategories = pgTable(
   },
   (t) => [primaryKey({ columns: [t.postId, t.categoryId] })]
 );
+
+export const test = pgTable("Test", {
+  integer: p.integer(),
+  integerArray: p.integer().array(),
+  real: p.real(),
+  realArray: p.real().array(),
+  smallint: p.smallint(),
+  enum: roleEnum(),
+  bigint: bigint({ mode: "bigint" }),
+  bigintNumber: bigint({ mode: "number" }),
+  bigintString: bigint({ mode: "string" }),
+  bigintArray: bigint({ mode: "bigint" }).array(),
+  serial: p.serial(),
+  smallserial: p.smallserial(),
+  bigserial: p.bigserial({ mode: "bigint" }),
+  bigserialNumber: p.bigserial({ mode: "number" }),
+  boolean: p.boolean(),
+  booleanArray: p.boolean().array(),
+  bytea: p.bytea(),
+  byteaArray: p.bytea().array(),
+  text: p.text(),
+  textArray: p.text().array(),
+  varchar: p.varchar(),
+  char: p.char({ length: 16 }),
+  numeric: p.numeric({ mode: "bigint" }),
+  numericNumber: p.numeric({ mode: "number" }),
+  numericString: p.numeric({ mode: "string" }),
+  decimal: p.decimal({ mode: "bigint" }),
+  decimalNumber: p.decimal({ mode: "number" }),
+  decimalString: p.decimal({ mode: "string" }),
+  doublePrecision: p.doublePrecision(),
+  json: p.json(),
+  jsonb: p.jsonb(),
+  jsonbArray: p.jsonb().array(),
+  uuid: p.uuid(),
+  time: p.time(),
+  timestamp: p.timestamp(),
+  timestampArray: p.timestamp().array(),
+  date: p.date(),
+  interval: p.interval(),
+  point: p.point({ mode: "xy" }),
+  pointTuple: p.point({ mode: "tuple" }),
+  line: p.line({ mode: "abc" }),
+  lineTuple: p.line({ mode: "tuple" }),
+});
