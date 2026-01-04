@@ -79,27 +79,16 @@ export const expandOperations = (operations: readonly Operation[]) => {
 };
 
 /**
- * Checks if a specific basic operation is included in a list of operation strings.
- * @param operations A list of operation strings.
- * @param operation The basic operation to check for.
- * @returns True if the operation is included, false otherwise.
- */
-export const isOperation = (
-  operations: readonly string[],
-  operation: (typeof OperationBasic)[number]
-) => {
-  return operations.includes(operation);
-};
-
-/**
  * Checks if a given operation (or operation category) is included in a list of operations.
  * This function expands categories like "all" or "find" before checking.
  * @param operations The list of operations or operation categories to check against.
  * @param operation The operation or operation category to check for.
  * @returns True if `op` is fully included in `operations`, false otherwise.
  */
-export const isOperationIncluded = (operations: Operation[], operation: Operation) => {
-  const aOperations = new Set(expandOperations(operations));
+export const isOperation = (operations: Operation[] | Operation, operation: Operation) => {
+  const aOperations = new Set(
+    expandOperations(Array.isArray(operations) ? operations : [operations])
+  );
   const bOperations = expandOperations([operation]);
   return bOperations.every((v) => aOperations.has(v));
 };
