@@ -12,7 +12,7 @@ function getDepthFromSelection(selection: SelectionNode | FieldNode, currentDept
 }
 
 export function getQueryDepth(info: GraphQLResolveInfo): number {
-  return info.fieldNodes[0] ? getDepthFromSelection(info.fieldNodes[0], 1) : 1;
+  return getDepthFromSelection(info.fieldNodes[0]!, 1);
 }
 
 export interface FieldTree {
@@ -41,10 +41,8 @@ export const getQueryFragment = (
 export const getQueryFields = (info: GraphQLResolveInfo, fieldNodes?: FieldNode[]) => {
   const selectFields: FieldTree = {};
   for (const fieldNode of fieldNodes ?? info.fieldNodes) {
-    if (fieldNode.selectionSet) {
-      for (const field of fieldNode.selectionSet.selections) {
-        getQueryFragment(info, selectFields, field);
-      }
+    for (const field of fieldNode.selectionSet!.selections) {
+      getQueryFragment(info, selectFields, field);
     }
   }
   return selectFields;

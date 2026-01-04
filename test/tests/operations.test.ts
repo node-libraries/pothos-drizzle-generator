@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   expandOperations,
   isOperation,
-  isOperationInclude,
+  isOperationIncluded,
   OperationBasic,
   OperationCreate,
   OperationDelete,
@@ -67,37 +67,37 @@ describe("operations", () => {
 
   describe("isOperationInclude", () => {
     it('should return true if "all" includes any basic operation', () => {
-      expect(isOperationInclude(["all"], "findFirst")).toBe(true);
-      expect(isOperationInclude(["all"], "createOne")).toBe(true);
+      expect(isOperationIncluded(["all"], "findFirst")).toBe(true);
+      expect(isOperationIncluded(["all"], "createOne")).toBe(true);
     });
 
     it('should return true if "query" includes findFirst', () => {
-      expect(isOperationInclude(["query"], "findFirst")).toBe(true);
+      expect(isOperationIncluded(["query"], "findFirst")).toBe(true);
     });
 
     it('should return false if "query" does not include createOne', () => {
-      expect(isOperationInclude(["query"], "createOne")).toBe(false);
+      expect(isOperationIncluded(["query"], "createOne")).toBe(false);
     });
 
     it("should return true if a specific list includes the operation", () => {
-      expect(isOperationInclude(["findFirst", "findMany"], "findFirst")).toBe(true);
+      expect(isOperationIncluded(["findFirst", "findMany"], "findFirst")).toBe(true);
     });
 
     it('should return true when checking if "all" includes "query"', () => {
-      expect(isOperationInclude(["all"], "query")).toBe(true);
+      expect(isOperationIncluded(["all"], "query")).toBe(true);
     });
 
     it('should return false when "find" does not include "mutation"', () => {
-      expect(isOperationInclude(["find"], "mutation")).toBe(false);
+      expect(isOperationIncluded(["find"], "mutation")).toBe(false);
     });
 
     it('should return true when "mutation" includes "update"', () => {
-      expect(isOperationInclude(["mutation"], "update")).toBe(true);
+      expect(isOperationIncluded(["mutation"], "update")).toBe(true);
     });
 
     it('should return true when "mutation" includes OperationCreate', () => {
-      expect(isOperationInclude(["mutation"], "createOne")).toBe(true);
-      expect(isOperationInclude(["mutation"], "createMany")).toBe(true);
+      expect(isOperationIncluded(["mutation"], "createOne")).toBe(true);
+      expect(isOperationIncluded(["mutation"], "createMany")).toBe(true);
     });
 
     it("should verify that OperationCreate is correctly defined", () => {

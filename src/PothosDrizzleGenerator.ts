@@ -577,7 +577,6 @@ export class PothosDrizzleGenerator<
             if (!isRelay) {
               query({});
             }
-
             if (!returning) {
               return client
                 .insert(table as never)

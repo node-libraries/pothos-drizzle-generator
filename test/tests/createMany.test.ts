@@ -29,6 +29,25 @@ const CREATE_MANY_POST = gql`
   }
 `;
 
+const CREATE_MANY_POST2 = gql`
+  fragment post on Post {
+    id
+    title
+    content
+    published
+    authorId
+  }
+
+  mutation CreateManyPost($input: [PostCreate!]!) {
+    createManyPost(input: $input) {
+      ...post
+      categories {
+        __typename
+      }
+    }
+  }
+`;
+
 interface PostResponse {
   id: string;
   title: string;
@@ -137,5 +156,92 @@ describe("Mutation: createManyPost (Drizzle v2 Pure Object Syntax)", () => {
     });
     expect(verified).toBeDefined();
     expect(verified?.title).toBe(`${uniqueBatchToken}-1`);
+  });
+
+  it("should return only __typename for each created post when requested", async () => {
+    const TYPENAME_ONLY_QUERY = gql`
+      mutation CreateManyPostTypename($input: [PostCreate!]!) {
+        createManyPost(input: $input) {
+          __typename
+        }
+      }
+    `;
+
+    const author = await db.query.users.findFirst();
+    const input = [
+      {
+        title: "Typename only test",
+        content: "Content",
+        authorId: author!.id,
+        published: true,
+      },
+    ];
+
+    const result = await client.mutation<{ createManyPost: { __typename: string }[] }>(
+      TYPENAME_ONLY_QUERY,
+      {
+        input,
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    const data = result.data?.createManyPost;
+    expect(data).toHaveLength(1);
+    expect(data?.[0]).toEqual({ __typename: "Post" });
+  });
+
+  it("should return __typename for relation (author) when requested", async () => {
+    const RELATION_TYPENAME_QUERY = gql`
+      mutation CreateManyPostRelationTypename($input: [PostCreate!]!) {
+        createManyPost(input: $input) {
+          author {
+            __typename
+          }
+        }
+      }
+    `;
+
+    const author = await db.query.users.findFirst();
+    const input = [
+      {
+        title: "Relation typename test",
+        content: "Content",
+        authorId: author!.id,
+        published: true,
+      },
+    ];
+
+    const result = await client.mutation<{
+      createManyPost: { author: { __typename: string } }[];
+    }>(RELATION_TYPENAME_QUERY, {
+      input,
+    });
+
+    expect(result.error).toBeUndefined();
+    const data = result.data?.createManyPost;
+    expect(data).toHaveLength(1);
+    expect(data?.[0].author).toEqual({ __typename: "User" });
+  });
+
+  it("should create a post and return only relation __typename", async () => {
+    const author = await db.query.users.findFirst();
+    if (!author) throw new Error("Author required");
+    const category = await db.query.categories.findFirst();
+    if (!category) throw new Error("Category required");
+    const result = await client.mutation<{
+      createManyPost: { categories: [{ __typename: string }] }[];
+    }>(CREATE_MANY_POST2, {
+      input: {
+        title: "Only Typename",
+        content: "Content",
+        authorId: author.id,
+        published: false,
+        categories: {
+          set: [{ id: category.id }],
+        },
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.data?.createManyPost[0].categories[0].__typename).toBe("Category");
   });
 });

@@ -4,6 +4,7 @@ import DrizzlePlugin from "@pothos/plugin-drizzle";
 import { Client, cacheExchange, fetchExchange, gql } from "@urql/core";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
+import { BigIntResolver } from "graphql-scalars";
 import { Hono } from "hono";
 import { contextStorage } from "hono/context-storage";
 import { describe, expect, it } from "vitest";
@@ -81,6 +82,8 @@ describe("Builder test", () => {
       },
       pothosDrizzleGenerator: {},
     });
+    builder.addScalarType("BigInt" as never, BigIntResolver, {});
+
     const app = new Hono<Context>();
     const server = graphqlServer({
       schema: builder.toSchema(),

@@ -1,4 +1,5 @@
 import { gql } from "@urql/core";
+import { isNull } from "drizzle-orm";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { relations } from "../db/relations";
 import { clearLogs, createClient, filterObject, getLogs, getSearchPath } from "../libs/test-tools";
@@ -281,6 +282,21 @@ describe("Mutation: updatePost (Drizzle v2 Pure Object Syntax)", () => {
     const data = result.data?.updatePost;
     expect(data).toHaveLength(1);
     expect(data?.[0].title).toBe(newTitle);
+  });
+
+  it("should and", async () => {
+    const targetPost = await db.query.posts.findFirst();
+    const newTitle = "Updated with null NOT";
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(UPDATE_POST_SIMPLE, {
+      input: { title: newTitle },
+      where: {
+        id: { eq: targetPost?.id, isNull: true },
+        NOT: null,
+      },
+    });
+
+    const data = result.data?.updatePost;
+    expect(data).toHaveLength(0);
   });
 
   it("should update all records when an empty where object is provided", async () => {
