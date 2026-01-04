@@ -1,61 +1,73 @@
-# pothos-drizzle-generator
+# Pothos Drizzle Generator
 
-**Pothos Drizzle Generator** is a powerful Pothos plugin that automatically generates a complete GraphQL schema (Query & Mutation) based on your Drizzle ORM schema definition.
+**Pothos Drizzle Generator** is a robust Pothos plugin designed to automatically generate a complete GraphQL schema (Queries & Mutations) directly from your Drizzle ORM schema definitions.
 
-It eliminates boilerplate by creating types, input objects, and resolvers for standard CRUD operations while offering granular control over permissions, filtering, and field visibility.
+By automating the creation of types, input objects, and resolvers for standard CRUD operations, this tool significantly reduces boilerplate code. It also provides granular control over permissions, complex filtering, and field visibility, ensuring your API remains secure and performant.
 
 - Screenshot in ApolloExplorer
 
 ![](./documents/image.png)
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Automated CRUD**: Generates `findMany`, `findFirst`, `create`, `update`, and `delete` operations.
-- **Type Safety**: Fully typed inputs and outputs based on your Drizzle schema.
-- **Rich Filtering**: Built-in support for complex filtering (`AND`, `OR`, `gt`, `contains`, etc.).
-- **Granular Control**: Configure visibility and permissions globally or per model.
-- **Join Table Handling**: Easily exclude or customize join tables.
+- **Automated CRUD Generation**: Instantly generates `findMany`, `findFirst`, `create`, `update`, and `delete` operations.
+- **End-to-End Type Safety**: Ensures fully typed inputs and outputs that stay in sync with your Drizzle schema.
+- **Deep Relational Filtering**: Apply filters, sorting, and pagination **not just to the main resource, but also to any nested relations** (e.g., "Find users and their _published_ posts").
+- **Advanced Filtering**: Built-in support for complex queries, including `AND`, `OR`, `gt` (greater than), `contains`, and more.
+- **Granular Access Control**: Configure visibility and permissions globally or on a per-model basis.
+- **Smart Relations**: Seamlessly handles join tables and nested relationships.
 
 ## 🔗 Sample Repository
 
-Check out the sample implementation here:
-
+Explore a working implementation in the sample repository:
 [https://github.com/SoraKumo001/pothos-drizzle-generator-sample](https://github.com/SoraKumo001/pothos-drizzle-generator-sample)
 
-## 📦 Requirements
+---
 
-- **drizzle-orm**: `v1.0.0-beta.8` or higher
-- **@pothos/core**: `v4.0.0` or higher
-- **@pothos/plugin-drizzle**: `v0.16.0` or higher
+## 📦 Getting Started
 
-## 📥 Installation
+### Requirements
 
-Install the generator alongside Pothos and Drizzle dependencies:
+Ensure your environment meets the following dependencies:
+
+- **drizzle-orm**: `v1.0.0-beta.8`+
+- **@pothos/core**: `v4.0.0`+
+- **@pothos/plugin-drizzle**: `v0.16.0`+
+
+### Installation
+
+Install the generator alongside the required Pothos and Drizzle packages:
 
 ```bash
+# npm
 npm install pothos-drizzle-generator @pothos/core @pothos/plugin-drizzle drizzle-orm graphql
-# or
-pnpm add pothos-drizzle-generator @pothos/core @pothos/plugin-drizzle drizzle-orm graphql
-# or
-yarn add pothos-drizzle-generator @pothos/core @pothos/plugin-drizzle drizzle-orm graphql
 
+# pnpm
+pnpm add pothos-drizzle-generator @pothos/core @pothos/plugin-drizzle drizzle-orm graphql
+
+# yarn
+yarn add pothos-drizzle-generator @pothos/core @pothos/plugin-drizzle drizzle-orm graphql
 
 ```
 
+---
+
 ## ⚡ Quick Start
 
-### 1. Setup Drizzle and Pothos
+Follow these steps to integrate the generator into your SchemaBuilder.
 
-Register the `PothosDrizzleGeneratorPlugin` in your SchemaBuilder.
+### 1. Setup & Initialization
+
+Register the `PothosDrizzleGeneratorPlugin` and configure your Drizzle client.
 
 ```ts
 import "dotenv/config";
 import SchemaBuilder from "@pothos/core";
 import DrizzlePlugin from "@pothos/plugin-drizzle";
+import PothosDrizzleGeneratorPlugin from "pothos-drizzle-generator";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { relations } from "./db/relations";
-import PothosDrizzleGeneratorPlugin from "pothos-drizzle-generator";
 
 // 1. Initialize Drizzle Client
 const db = drizzle({
@@ -64,7 +76,7 @@ const db = drizzle({
   logger: true,
 });
 
-// 2. Define Types
+// 2. Define Context & Types
 export interface PothosTypes {
   DrizzleRelations: typeof relations;
   Context: { userId?: string };
@@ -81,217 +93,189 @@ const builder = new SchemaBuilder<PothosTypes>({
     relations,
     getTableConfig,
   },
-  // 4. Configure Generator
+  // 4. Generator Configuration
   pothosDrizzleGenerator: {
-    // Configuration goes here (see below)
+    // Define your global and model-specific rules here
   },
 });
 
-// 5. Generate Schema
+// 5. Build Schema
 const schema = builder.toSchema();
 ```
 
+---
+
 ## ⚙️ Configuration Guide
 
-The `pothosDrizzleGenerator` option gives you full control over how your schema is generated. The configuration is applied in three layers:
+The `pothosDrizzleGenerator` option offers a layered configuration approach, giving you full control over the generated schema.
 
-1. **Selection (`use`)**: Which tables to include.
-2. **Global Defaults (`all`)**: Rules applied to every model.
-3. **Model Overrides (`models`)**: Rules for specific models.
+Rules are applied in the following order:
+
+1. **Selection (`use`)**: Define which tables to process.
+2. **Global Defaults (`all`)**: Apply baseline rules to _every_ model.
+3. **Model Overrides (`models`)**: Apply specific rules to individual models, overriding defaults.
 
 ### 1. Table Selection (`use`)
 
-By default, the generator creates types for **all** tables defined in your `relations`. You can use the `use` option to explicitly include or exclude specific tables.
-
-This is particularly useful for hiding join tables (many-to-many) or internal tables.
+Control which tables are exposed in the GraphQL schema. This is useful for hiding internal tables or many-to-many join tables.
 
 ```ts
 pothosDrizzleGenerator: {
-  // Option A: Allow list (Only generate these tables)
+  // Option A: Allowlist (Only generate these tables)
   use: { include: ["users", "posts", "comments"] },
 
-  // Option B: Block list (Generate everything EXCEPT these)
+  // Option B: Blocklist (Generate all EXCEPT these)
   use: { exclude: ["users_to_groups", "audit_logs"] },
 }
-
 
 ```
 
 ### 2. Global Defaults (`all`)
 
-The `all` option applies settings to **every model**. It is the best place to define your baseline security rules, default limits, and standard field visibility.
+Use the `all` key to establish project-wide conventions, such as security policies, default query limits, or field visibility.
 
 ```ts
 pothosDrizzleGenerator: {
   all: {
-    // Example: Require authentication for all write operations
+    // Security: Require authentication for all write operations
     executable: ({ ctx, operation }) => {
        if (['create', 'update', 'delete'].includes(operation)) {
-         return !!ctx.userId;
+         return !!ctx.userId; // Must be logged in
        }
-       return true;
+       return true; // Read operations are public
     },
-    // Example: Default limit for queries
+    // Performance: Set a default limit for all queries
     limit: () => 50,
   }
 }
-
 
 ```
 
 ### 3. Model Overrides (`models`)
 
-The `models` option allows you to target specific tables by their name. Settings defined here **override** the global settings in `all`.
+Target specific tables by name to override global settings.
 
 ```ts
 pothosDrizzleGenerator: {
   models: {
     users: {
-      // Users can only see their own profile
+      // Privacy: Users can only query their own record
       where: ({ ctx }) => ({ id: { eq: ctx.userId } }),
-      // Disable deletion for users
+      // Security: Prevent user deletion via API
       operations: () => ({ exclude: ["delete"] })
     }
   }
 }
 
-
 ```
 
 ### 4. API Reference
 
-The following options are available within both `all` and `models`. The **Expected Return** column indicates the type of data your callback function should return.
+The following callbacks can be used within both `all` and `models`.
 
-| Property      | Description                                                              | Callback Arguments              | Expected Return (If undefined is returned, the default behavior applies) |
-| ------------- | ------------------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------------ |
-| `executable`  | Determines if an operation is allowed. Return `false` to throw an error. | `{ ctx, modelName, operation }` | `boolean`                                                                |
-| `fields`      | Controls which fields are exposed in the Type.                           | `{ modelName }`                 | `{ include?: string[], exclude?: string[] }`                             |
-| `inputFields` | Controls which fields are exposed in Input types (Create/Update).        | `{ modelName }`                 | `{ include?: string[], exclude?: string[] }`                             |
-| `operations`  | Specifies which CRUD operations to generate.                             | `{ modelName }`                 | `{ include?: string[], exclude?: string[] }`                             |
-| `where`       | Applies mandatory filters (e.g., for multi-tenancy or soft deletes).     | `{ ctx, modelName, operation }` | `FilterObject` (e.g. `{ id: { eq: 1 } }`)                                |
-| `limit`       | Sets the default maximum number of records for `findMany`.               | `{ ctx, modelName, operation }` | `number`                                                                 |
-| `depthLimit`  | Limits query nesting depth to prevent performance issues.                | `{ ctx, modelName, operation }` | `number`                                                                 |
-| `orderBy`     | Defines the default sort order.                                          | `{ ctx, modelName, operation }` | `{ [column]: 'asc' \| 'desc' }`                                          |
-| `inputData`   | Injects server-side values (e.g., `userId`) into Mutations.              | `{ ctx, modelName, operation }` | `Object` (matching the model input)                                      |
+| Property      | Purpose                                                    | Arguments                       | Expected Return                  |
+| ------------- | ---------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| `executable`  | Authorization check. Return `false` to block execution.    | `{ ctx, modelName, operation }` | `boolean`                        |
+| `fields`      | Control output field visibility.                           | `{ modelName }`                 | `{ include?: [], exclude?: [] }` |
+| `inputFields` | Control input field visibility (for mutations).            | `{ modelName }`                 | `{ include?: [], exclude?: [] }` |
+| `operations`  | Select which CRUD operations to generate.                  | `{ modelName }`                 | `{ include?: [], exclude?: [] }` |
+| `where`       | Apply mandatory filters (e.g., multi-tenancy).             | `{ ctx, modelName, operation }` | `FilterObject`                   |
+| `limit`       | Set default max records for `findMany`.                    | `{ ctx, modelName, operation }` | `number`                         |
+| `depthLimit`  | Prevent deeply nested queries.                             | `{ ctx, modelName, operation }` | `number`                         |
+| `orderBy`     | Set default sort order.                                    | `{ ctx, modelName, operation }` | `{ [col]: 'asc' \| 'desc' }`     |
+| `inputData`   | Inject server-side values (e.g., `userId`) into mutations. | `{ ctx, modelName, operation }` | `Object`                         |
 
-### 5. Helper Functions & Constants
+### 5. Helper Functions
 
-To simplify logic within your configuration callbacks (like `executable`, `where`, etc.), the package exports helper functions and constants for categorizing operations.
+Import `isOperation` to simplify conditional logic within your callbacks.
 
 ```ts
 import { isOperation } from "pothos-drizzle-generator";
-```
 
-#### `isOperation(group, currentOperation)`
-
-Checks if the current operation belongs to a specific group or category. This is cleaner than manually checking arrays of strings.
-
-```ts
-pothosDrizzleGenerator: {
-  all: {
-    // Example: Require authentication for any mutation (Create/Update/Delete)
-    executable: ({ ctx, operation }) => {
-      if (isOperation("mutation", operation)) {
-        return !!ctx.user;
-      }
-      return true;
-    },
-  },
-}
+// Usage Example
+executable: ({ ctx, operation }) => {
+  // Check if operation is a mutation (create/update/delete)
+  if (isOperation("mutation", operation)) {
+    return !!ctx.user;
+  }
+  return true;
+},
 
 ```
 
-#### Operation Categories
+**Available Operation Categories:**
 
-The following constants can be used with `isOperation` or imported directly to reference groups of operations.
+- `OperationFind`: `findFirst`, `findMany`
+- `OperationQuery`: `findFirst`, `findMany`, `count`
+- `OperationCreate`: `createOne`, `createMany`
+- `OperationUpdate`: `update`
+- `OperationDelete`: `delete`
+- `OperationMutation`: All write operations.
+- `OperationAll`: Everything.
 
-| Constant            | String     | Included Operations                           |
-| ------------------- | ---------- | --------------------------------------------- |
-| `OperationFind`     | `find`     | `findFirst`, `findMany`                       |
-| `OperationQuery`    | `query`    | `findFirst`, `findMany`, `count`              |
-| `OperationCreate`   | `create`   | `createOne`, `createMany`                     |
-| `OperationUpdate`   | `update`   | `update`                                      |
-| `OperationDelete`   | `delete`   | `delete`                                      |
-| `OperationMutation` | `mutation` | `createOne`, `createMany`, `update`, `delete` |
-| `OperationAll`      | `all`      | ...all                                        |
+---
 
-## 🛡️ Comprehensive Example
+## 🛡️ Comprehensive Configuration Example
 
-Below is a complete example showing how `use`, `all`, and `models` work together to create a secure, production-ready schema.
+This example demonstrates a production-ready setup combining global security rules with specific model overrides.
 
 ```ts
 import { isOperation } from "pothos-drizzle-generator";
 
 const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [DrizzlePlugin, PothosDrizzleGeneratorPlugin],
-  drizzle: {
-    /* ... */
-  },
-
+  // ... plugins setup
   pothosDrizzleGenerator: {
-    // 1. Global Exclusion: Don't generate schema for join tables
+    // 1. Exclude join tables from the schema
     use: { exclude: ["postsToCategories"] },
 
-    // 2. Global Defaults (Applied to everyone)
+    // 2. Global Defaults
     all: {
-      // Security: Read-only by default. Writes require login.
+      // Security: Read-only for guests, Writes for logged-in users
       executable: ({ ctx, operation }) => {
-        if (isOperation("mutation", operation)) {
-          return !!ctx.user;
-        }
+        if (isOperation("mutation", operation)) return !!ctx.user;
         return true;
       },
-
-      // Visibility: Never expose password or secret fields.
+      // Privacy: Hide sensitive fields everywhere
       fields: () => ({ exclude: ["password", "secretKey"] }),
-
-      // Inputs: Never allow clients to set system timestamps.
+      // Integrity: Protect system fields from manual input
       inputFields: () => ({ exclude: ["createdAt", "updatedAt"] }),
-
-      // Logic: Exclude soft-deleted records.
+      // Logic: Filter out soft-deleted records (except when actually deleting)
       where: ({ operation }) => {
         if (operation !== "delete") return { deletedAt: { isNull: true } };
         return {};
       },
-
-      // Performance: Default limits.
+      // Performance: Default limits
       limit: () => 50,
       depthLimit: () => 5,
     },
 
     // 3. Model Overrides
     models: {
-      // Case A: Strict privacy for 'users'
       users: {
-        // Users can only see themselves
+        // Privacy: Users see only themselves
         where: ({ ctx }) => ({ id: { eq: ctx.user?.id } }),
         limit: () => 1,
         operations: () => ({ exclude: ["delete"] }),
       },
-
-      // Case B: Public but owned 'posts'
       posts: {
         limit: () => 100,
-
-        // Automatically attach authorId on creation
+        // Automation: Attach current user as author
         inputData: ({ ctx }) => ({ authorId: ctx.user?.id }),
-
-        // Complex Filter: Public posts OR my own posts
+        // Logic: Public posts OR User's own posts
         where: ({ ctx, operation }) => {
           if (isOperation("find", operation)) {
             return {
               OR: [{ published: true }, { authorId: { eq: ctx.user?.id } }],
             };
           }
-          // Only update/delete own posts
+          // Security: Only edit/delete own posts
           if (isOperation(["update", "delete"], operation)) {
             return { authorId: ctx.user?.id };
           }
         },
       },
-
-      // Case C: Admin-only table
       audit_logs: {
+        // Security: Admin access only
         executable: ({ ctx }) => !!ctx.user?.isAdmin,
       },
     },
@@ -299,276 +283,77 @@ const builder = new SchemaBuilder<PothosTypes>({
 });
 ```
 
-## Examples of Using the Generated GraphQL
+---
 
-This section demonstrates the power of the generated schema, focusing on how it handles complex relations efficiently and ensures data integrity.
+## 💡 Generated Schema Capabilities
 
-### findMany
+### Optimized Data Retrieval (Solving N+1)
 
-**Efficient Relational Data Retrieval (Solving N+1)**
+The generator's `findMany` operation is engineered for performance and flexibility.
 
-The generated `findMany` operation allows you to fetch complex, nested data in a single request.
+- **Deep Filtering & Sorting**: You aren't limited to filtering the root node. You can apply specific `where` clauses, `limit`, and `orderBy` arguments **to any related field deep in the graph**.
+- **Single Query Execution**: It consolidates fetching the main resource, related records, and counts into a **single, optimized SQL query**. This utilizes complex `JOIN` and `LATERAL` clauses to eliminate the N+1 problem.
 
-- **GraphQL Benefits**: You can retrieve a `Post` along with its `author`, `categories`, and related counts simultaneously. Pagination (`offset`/`limit`), filtering (`where`), and sorting (`orderBy`) are supported at every level of the graph.
-- **Performance (SQL)**: The generator solves the classic **N+1 problem** by consolidating the entire fetch into a **single optimized SQL query** using complex `JOIN` and `LATERAL` clauses. This ensures your API remains performant regardless of data volume.
-- **GraphQL**
+**Example Query:**
+_Fetching users and specifically only their 'published' posts._
 
 ```graphql
-query FindManyPost(
-  $offset: Int
-  $limit: Int
-  $where: PostWhere
-  $orderBy: [PostOrderBy!]
-  $authorCountWhere: UserWhere
-  $categoriesCountWhere: CategoryWhere
-  $authorOffset: Int
-  $authorLimit: Int
-  $authorWhere: UserWhere
-  $authorOrderBy: [UserOrderBy!]
-  $categoriesOffset: Int
-  $categoriesLimit: Int
-  $categoriesWhere: CategoryWhere
-  $categoriesOrderBy: [CategoryOrderBy!]
-) {
-  findManyPost(offset: $offset, limit: $limit, where: $where, orderBy: $orderBy) {
-    ...post
-    authorCount(where: $authorCountWhere)
-    categoriesCount(where: $categoriesCountWhere)
-    author(
-      offset: $authorOffset
-      limit: $authorLimit
-      where: $authorWhere
-      orderBy: $authorOrderBy
-    ) {
-      ...user
-    }
-    categories(
-      offset: $categoriesOffset
-      limit: $categoriesLimit
-      where: $categoriesWhere
-      orderBy: $categoriesOrderBy
-    ) {
-      ...category
+query {
+  findManyUser {
+    id
+    name
+    # Filter related records directly
+    posts(where: { published: { eq: true } }, orderBy: { createdAt: desc }, limit: 5) {
+      title
+      createdAt
     }
   }
 }
 ```
 
-- **Output SQL**
+### Transactional Mutations
 
-Notice how all data is retrieved in one go:
+Write operations ensure data integrity through automatic transaction wrapping.
 
-```sql
- select
-  "d0"."id" as "id",
-  "d0"."published" as "published",
-  "d0"."title" as "title",
-  "d0"."content" as "content",
-  "d0"."authorId" as "authorId",
-  "d0"."createdAt" as "createdAt",
-  "d0"."updatedAt" as "updatedAt",
-  "d0"."publishedAt" as "publishedAt",
-  "author"."r" as "author",
-  "categories"."r" as "categories",
-  (
-    (
-      select
-        count(*)
-      from
-        "User"
-      where
-        "User"."id" = "d0"."authorId"
-    )
-  ) as "_author_count",
-  (
-    select
-      count(*)
-    from
-      "Category"
-      left join "PostToCategory" on "PostToCategory"."categoryId" = "Category"."id"
-    where
-      "PostToCategory"."postId" = "d0"."id"
-  ) as "categoriesCount"
-from
-  "Post" as "d0"
-  left join lateral (
-    select
-      row_to_json("t".*) "r"
-    from
-      (
-        select
-          "d1"."id" as "id",
-          "d1"."email" as "email",
-          "d1"."name" as "name",
-          "d1"."roles" as "roles",
-          "d1"."createdAt" as "createdAt",
-          "d1"."updatedAt" as "updatedAt"
-        from
-          "User" as "d1"
-        where
-          "d0"."authorId" = "d1"."id"
-        limit
-          $1
-      ) as "t"
-  ) as "author" on true
-  left join lateral (
-    select
-      coalesce(json_agg(row_to_json("t".*)), '[]') as "r"
-    from
-      (
-        select
-          "d1"."id" as "id",
-          "d1"."name" as "name",
-          "d1"."createdAt" as "createdAt",
-          "d1"."updatedAt" as "updatedAt"
-        from
-          "Category" as "d1"
-          inner join "PostToCategory" as "tr0" on "tr0"."categoryId" = "d1"."id"
-        where
-          "d0"."id" = "tr0"."postId"
-      ) as "t"
-  ) as "categories" on true
-where
-  "d0"."published" = $2
+- **Atomic Operations**: When creating a record with related data (e.g., a Post with Categories), the entire process runs within a database transaction (`BEGIN` ... `COMMIT`).
+- **Consistency**: If any part of the operation fails (e.g., inserting a relation), the entire action is rolled back, preventing orphaned data.
 
-```
-
-### create
-
-**Transactional Writes & Many-to-Many Handling**
-
-The `create` mutation simplifies handling related data, ensuring data integrity through transactions.
-
-- **GraphQL Benefits**: You can create a main record (e.g., `Post`) and link it to related records (e.g., `categories` in a Many-to-Many relationship) in a **single mutation**.
-- **Data Integrity (SQL)**: The operation is automatically wrapped in a **database transaction (`begin` ... `commit`)**. This guarantees consistency: the post is created, old associations are handled, and new associations are inserted atomically. If any part fails, the entire operation is rolled back.
-- **GraphQL**
+**Example Mutation:**
 
 ```graphql
-mutation Mutation($input: PostCreate!) {
-  createOnePost(input: $input) {
-    ...post
+mutation {
+  createOnePost(
+    input: {
+      title: "My New Post"
+      content: "Hello World"
+      # Handles many-to-many relation automatically
+      categories: { set: [{ id: "cat-1" }, { id: "cat-2" }] }
+    }
+  ) {
+    id
     categories {
-      ...category
+      name
     }
   }
 }
 ```
 
-```json
-{
-  "input": {
-    "title": "test",
-    "published": true,
-    "content": "test-content",
-    "categories": {
-      "set": [
-        {
-          "id": "663f796b-7ec0-4cda-8484-af8fe4197463"
-        },
-        {
-          "id": "e5c86702-aaaf-4c55-a938-c3d922c0ffe2"
-        }
-      ]
-    }
-  }
-}
-```
+---
 
-- **Output SQL**
-
-A transaction ensures atomicity:
-
-```sql
-begin;
-insert into
-    "Post" (
-      "id",
-      "published",
-      "title",
-      "content",
-      "authorId",
-      "createdAt",
-      "updatedAt",
-      "publishedAt"
-    )
-  values
-    (
-      default,
-      $1,
-      $2,
-      $3,
-      $4,
-      default,
-      default,
-      default
-    )
-  returning
-    "id",
-    "published",
-    "title",
-    "content",
-    "authorId",
-    "createdAt",
-    "updatedAt",
-    "publishedAt";
-delete from "PostToCategory"
-  where
-    "PostToCategory"."postId" = $1;
-insert into
-    "PostToCategory" ("postId", "categoryId")
-  values
-    ($1, $2),
-    ($3, $4);
-commit;
-select
-    "d0"."id" as "id",
-    "d0"."published" as "published",
-    "d0"."title" as "title",
-    "d0"."content" as "content",
-    "d0"."authorId" as "authorId",
-    "d0"."createdAt" as "createdAt",
-    "d0"."updatedAt" as "updatedAt",
-    "d0"."publishedAt" as "publishedAt",
-    "categories"."r" as "categories"
-  from
-    "Post" as "d0"
-    left join lateral (
-      select
-        coalesce(json_agg(row_to_json("t".*)), '[]') as "r"
-      from
-        (
-          select
-            "d1"."id" as "id",
-            "d1"."name" as "name",
-            "d1"."createdAt" as "createdAt",
-            "d1"."updatedAt" as "updatedAt"
-          from
-            "Category" as "d1"
-            inner join "PostToCategory" as "tr0" on "tr0"."categoryId" = "d1"."id"
-          where
-            "d0"."id" = "tr0"."postId"
-        ) as "t"
-    ) as "categories" on true
-
-```
-
-## 🔍 Supported Features
+## 🔍 Supported Features Checklist
 
 ### Operations
-
-The generator creates the following GraphQL fields for each model (unless excluded):
 
 - **Queries**: `findMany`, `findFirst`, `count`
 - **Mutations**: `create`, `update`, `delete`
 
-### Filtering
-
-Advanced filtering is supported via the `where` argument on queries.
+### Advanced Filtering (`where`)
 
 - **Logical**: `AND`, `OR`, `NOT`
-- **Comparison**: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `notIn`, `isNull`, `isNotNull`
-- **String**: `like`, `notLike`, `ilike`, `notIlike`
-- **Array**: `arrayContained`, `arrayOverlaps`, `arrayContains`
+- **Comparators**: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `notIn`
+- **Existence**: `isNull`, `isNotNull`
+- **String Matching**: `like`, `notLike`, `ilike`, `notIlike`
+- **Array Operations**: `arrayContained`, `arrayOverlaps`, `arrayContains`
 
 ## License
 
