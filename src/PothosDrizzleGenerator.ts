@@ -17,9 +17,7 @@ import { isOperation, OperationMutation, type OperationBasic } from "./libs/oper
 import { createWhereQuery, getQueryDepth, getQueryFields } from "./libs/utils.js";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgQueryResultHKT, PgTable } from "drizzle-orm/pg-core";
-import type { PgAsyncRelationalQueryHKT } from "drizzle-orm/pg-core/async/query.js";
-import type { PgAsyncTransaction } from "drizzle-orm/pg-core/async/session.js";
+import type { PgQueryResultHKT, PgTable, PgTransaction } from "drizzle-orm/pg-core";
 import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -450,8 +448,7 @@ export class PothosDrizzleGenerator<
             return (
               this.generator.getClient(ctx).query[modelName as never] as RelationalQueryBuilder<
                 never,
-                never,
-                PgAsyncRelationalQueryHKT
+                never
               >
             )
               .findFirst({
@@ -686,7 +683,7 @@ export class PothosDrizzleGenerator<
     relations,
   }: {
     results: Record<string, unknown>[];
-    client: PgAsyncTransaction<TQueryResult, EmptyRelations>;
+    client: PgTransaction<TQueryResult, EmptyRelations>;
     relationInputs: [string, unknown][][];
     relations: RelationsRecord;
   }) {

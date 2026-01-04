@@ -1,7 +1,7 @@
 import { gql } from "@urql/core";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { relations } from "../db/relations";
-import { posts, categories, postsToCategories } from "../db/schema";
+import { postsToCategories } from "../db/schema";
 import { createClient, filterObject, getSearchPath } from "../libs/test-tools";
 
 export const { app, client, db } = createClient({

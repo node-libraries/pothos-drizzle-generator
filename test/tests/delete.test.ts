@@ -1,5 +1,4 @@
 import { gql } from "@urql/core";
-import { isNull } from "drizzle-orm";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { relations } from "../db/relations";
 import { clearLogs, createClient, filterObject, getLogs, getSearchPath } from "../libs/test-tools";
