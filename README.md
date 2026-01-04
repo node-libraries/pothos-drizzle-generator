@@ -1,5 +1,10 @@
 # Pothos Drizzle Generator
 
+[![](https://img.shields.io/npm/l/pothos-drizzle-generator)](https://www.npmjs.com/package/pothos-drizzle-generator)
+[![](https://img.shields.io/npm/v/pothos-drizzle-generator)](https://www.npmjs.com/package/pothos-drizzle-generator)
+[![](https://img.shields.io/npm/dw/pothos-drizzle-generator)](https://www.npmjs.com/package/pothos-drizzle-generator)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/node-libraries/pothos-drizzle-generator)
+
 **Pothos Drizzle Generator** is a robust Pothos plugin designed to automatically generate a complete GraphQL schema (Queries & Mutations) directly from your Drizzle ORM schema definitions.
 
 By automating the creation of types, input objects, and resolvers for standard CRUD operations, this tool significantly reduces boilerplate code. It also provides granular control over permissions, complex filtering, and field visibility, ensuring your API remains secure and performant.
