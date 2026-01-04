@@ -86,7 +86,17 @@ const schema = builder.toSchema();
 
 The `pothosDrizzleGenerator` option allows you to control exactly how the schema is generated. You can apply settings globally via `all` or target specific tables via `models`.
 
-### 1. Global Configuration (`all`)
+### 1. Configuration
+
+```ts
+{
+  pothosDrizzleGenerator: {
+    all: {
+       ...ModelOptions
+    }
+  }
+}
+```
 
 The `all` option applies settings to **every model** in your Drizzle schema. It is the best place to define your baseline security rules, default limits, and standard field visibility.
 
@@ -115,10 +125,13 @@ This is useful for:
 The structure is:
 
 ```ts
-models: {
-  [TableName]: { ...ModelOptions }
+{
+  pothosDrizzleGenerator: {
+    models: {
+      [TableName]: { ...ModelOptions }
+    }
+  }
 }
-
 ```
 
 ### 3. Comprehensive Configuration Example
