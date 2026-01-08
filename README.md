@@ -21,6 +21,7 @@ By automating the creation of types, input objects, and resolvers for standard C
 - **Advanced Filtering**: Built-in support for complex queries, including `AND`, `OR`, `gt` (greater than), `contains`, and more.
 - **Granular Access Control**: Configure visibility and permissions globally or on a per-model basis.
 - **Smart Relations**: Seamlessly handles join tables and nested relationships.
+- **Supported Databases**: PostgreSQL, SQLite.
 
 ## 🔗 Sample Repository
 
