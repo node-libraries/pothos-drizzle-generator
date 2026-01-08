@@ -660,7 +660,11 @@ export class PothosDrizzleGenerator<
                 .update(table as never)
                 .set(dbColumnsInput as never)
                 .where(whereQuery)
-                .then((v) => Array(v.rowCount!).fill({}));
+                .then((v) =>
+                  Array(v.rowCount ?? (v as typeof v & { rowsAffected: number }).rowsAffected).fill(
+                    {}
+                  )
+                );
             }
 
             return client.transaction(async (tx) =>
@@ -800,7 +804,11 @@ export class PothosDrizzleGenerator<
                   .getClient(ctx)
                   .delete(table as never)
                   .where(whereQuery)
-                  .then((v) => Array(v.rowCount!).fill({}));
+                  .then((v) =>
+                    Array(
+                      v.rowCount ?? (v as typeof v & { rowsAffected: number }).rowsAffected
+                    ).fill({})
+                  );
           },
         } as never),
       }),

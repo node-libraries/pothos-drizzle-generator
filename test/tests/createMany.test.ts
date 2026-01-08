@@ -273,7 +273,6 @@ describe("Mutation: createManyPost (Drizzle v2 Pure Object Syntax)", () => {
       `,
       {}
     );
-    console.log(result);
     expect(result.error).toBeUndefined();
     const data = result.data?.createManyPost;
     expect(data).toHaveLength(2);

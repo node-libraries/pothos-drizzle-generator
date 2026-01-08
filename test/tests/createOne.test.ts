@@ -9,7 +9,6 @@ export const { app, client, db } = createClient({
   pothosDrizzleGenerator: {},
 });
 
-
 const CREATE_ONE_POST = gql`
   fragment post on Post {
     id
@@ -71,7 +70,6 @@ describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
   });
 
   it("should create a single post with non-null fields and return the created record", async () => {
-    
     const author = await db.query.users.findFirst({
       where: {
         id: { isNotNull: true },
@@ -98,11 +96,9 @@ describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
 
     if (!createdPost) throw new Error("Mutation result data is missing");
 
-    
     expect(filterObject(createdPost, IGNORED_KEYS)).toMatchSnapshot();
     expect(createdPost.author.id).toBe(author.id);
 
-    
     const savedPost = await db.query.posts.findFirst({
       where: {
         id: { eq: createdPost.id },
@@ -114,8 +110,6 @@ describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
     expect(savedPost?.content).toBe("Required Content Body");
     expect(savedPost?.published).toBe(true);
   });
-
-  
 
   it("should create a post and verify it with complex object filtering", async () => {
     const author = await db.query.users.findFirst();
@@ -135,7 +129,6 @@ describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
     const createdPost = result.data?.createOnePost;
     if (!createdPost) throw new Error("Post creation failed");
 
-    
     const verified = await db.query.posts.findFirst({
       where: {
         id: { eq: createdPost.id },
@@ -149,13 +142,22 @@ describe("Mutation: createOnePost (Drizzle v2 Pure Object Syntax)", () => {
   });
 
   it("should return an error when required fields are missing (Schema Validation)", async () => {
-    
-    const result = await client.mutation(CREATE_ONE_POST, {
-      input: {
-        title: "Incomplete Post",
-        
-      },
-    });
+    const post = await db.query.posts.findFirst();
+    const result = await client.mutation(
+      gql`
+        mutation CreateOneCategory {
+          createOneCategory(input: { posts: { set: [{ id: "${post!.id}" }] } }) {
+            id
+            name
+          }
+        }
+      `,
+      {
+        input: {
+          title: "Incomplete Post",
+        },
+      }
+    );
 
     expect(result.error).toBeDefined();
   });

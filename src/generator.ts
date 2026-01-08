@@ -17,7 +17,7 @@ import { createInputOperator, getQueryFields, type FieldTree } from "./libs/util
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgArray, PgColumn, PgTable, getTableConfig } from "drizzle-orm/pg-core";
+import type { PgArray, PgColumn, getTableConfig } from "drizzle-orm/pg-core";
 import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -104,7 +104,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const tables = Object.values(relations)
       .filter((t) => isTable(t.table))
       .map(({ name: modelName, table, relations }) => {
-        const tableInfo = getConfig(table as PgTable);
+        const tableInfo = getConfig(table as never);
         const allOptions = options?.all;
         const modelOptions = options?.models?.[modelName];
         const columns = tableInfo.columns;
@@ -115,14 +115,13 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
           ])
         );
 
-        
         const operationValue = (modelOptions?.operations ?? allOptions?.operations)?.({
           modelName,
         });
         const operationIncludes = expandOperations(operationValue?.include ?? OperationBasic);
         const operationExcludes = expandOperations(operationValue?.exclude ?? []);
         const operations = operationIncludes.filter((v) => !operationExcludes.includes(v));
-        
+
         const columnValue = (modelOptions?.fields ?? allOptions?.fields)?.({
           modelName,
         });
@@ -134,7 +133,6 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         const exclude = (columnValue?.exclude as undefined | string[]) ?? [];
         const filterColumns = include.filter((name) => !exclude.includes(name));
 
-        
         const inputFieldValue = (modelOptions?.inputFields ?? allOptions?.inputFields)?.({
           modelName,
         });
@@ -162,7 +160,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         ] as const;
       });
     const modelNames = tables.map(([name]) => name);
-    
+
     const include = options?.use?.include ?? modelNames;
     const exclude = options?.use?.exclude ?? [];
     const filterTables = include.filter((name) => !exclude.includes(name));
@@ -220,7 +218,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
                 col.name,
                 t.field({
                   type: this.getDataType(col),
-                  required: col.notNull,
+                  required: col.notNull && !col.hasDefault,
                 }),
               ])
             ),
@@ -244,7 +242,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
           col.name,
           t.field({
             type: this.getDataType(col),
-            required: col.notNull && !col.default,
+            required: col.notNull && !col.hasDefault,
           }),
         ]);
         const relayFields = this.getInputRelation(modelName);
