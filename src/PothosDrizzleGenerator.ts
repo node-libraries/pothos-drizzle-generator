@@ -6,6 +6,7 @@ import {
   type AnyRelation,
   type EmptyRelations,
   type RelationsRecord,
+  type TablesRelationalConfig,
 } from "drizzle-orm";
 import {
   DrizzleGenerator,
@@ -16,9 +17,13 @@ import {
 import { isOperation, type OperationBasic } from "./libs/operations.js";
 import { createWhereQuery, getQueryDepth, getQueryFields } from "./libs/utils.js";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgQueryResultHKT, PgTable, PgTransaction } from "drizzle-orm/pg-core";
-import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
+import type {
+  PgAsyncRelationalQueryHKT,
+  PgAsyncTransaction,
+  PgQueryResultHKT,
+  PgTable,
+} from "drizzle-orm/pg-core";
+import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query.js";
 import type { GraphQLResolveInfo } from "graphql";
 
 type OperationParams = {
@@ -187,7 +192,7 @@ export class PothosDrizzleGenerator<
                 columns: {},
                 extras: {
                   [`${relayName}Count`]: (table: PgTable) => {
-                    const client: NodePgDatabase = generator.getClient(ctx);
+                    const client = generator.getClient(ctx);
                     return client
                       .select({ count: sql`count(*)` })
                       .from(relay.targetTable as never)
@@ -447,8 +452,9 @@ export class PothosDrizzleGenerator<
 
             return (
               this.generator.getClient(ctx).query[modelName as never] as RelationalQueryBuilder<
-                never,
-                never
+                TablesRelationalConfig,
+                TablesRelationalConfig[string],
+                PgAsyncRelationalQueryHKT
               >
             )
               .findFirst({
@@ -697,7 +703,7 @@ export class PothosDrizzleGenerator<
     relations,
   }: {
     results: Record<string, unknown>[];
-    client: PgTransaction<TQueryResult, EmptyRelations>;
+    client: PgAsyncTransaction<TQueryResult, EmptyRelations>;
     relationInputs: [string, unknown][][];
     relations: RelationsRecord;
   }) {

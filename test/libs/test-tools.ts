@@ -103,8 +103,8 @@ export const createBuilder = <TRelations extends AnyRelations = EmptyRelations>(
   }>({
     plugins: [DrizzlePlugin, PothosDrizzleGeneratorPlugin],
     drizzle: {
-      client: db,
-      getTableConfig,
+      client: db as never,
+      getTableConfig: getTableConfig as never,
     },
     pothosDrizzleGenerator,
   });
@@ -149,7 +149,6 @@ export const createApp = <TRelations extends AnyRelations = EmptyRelations>({
   });
   app.use(contextStorage());
   app.post("/", async (c, next) => {
-    
     const cookies = getCookie(c);
     const token = cookies["auth-token"] ?? "";
     const secret = process.env.SECRET;

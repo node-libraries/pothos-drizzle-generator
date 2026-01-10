@@ -36,9 +36,9 @@ Explore a working implementation in the sample repository:
 
 Ensure your environment meets the following dependencies:
 
-- **drizzle-orm**: `v1.0.0-beta.8`+
+- **drizzle-orm**: `v1.0.0-beta.10`+
 - **@pothos/core**: `v4.0.0`+
-- **@pothos/plugin-drizzle**: `v0.16.0`+
+- **@pothos/plugin-drizzle**: `v0.16.2`+
 
 ### Installation
 

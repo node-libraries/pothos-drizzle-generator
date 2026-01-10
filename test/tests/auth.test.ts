@@ -5,7 +5,6 @@ import { relations } from "../db/relations";
 import { onCreateBuilder } from "../libs/test-operations";
 import { createClient, getSearchPath } from "../libs/test-tools";
 
-
 const USER_FRAGMENT = gql`
   fragment user on User {
     id
@@ -113,7 +112,6 @@ const { client, db } = createClient({
     all: {
       depthLimit: () => 5,
       executable: ({ operation, ctx }) => {
-        
         if (isOperation(OperationMutation, operation) && !ctx.get("user")) {
           return false;
         }
@@ -131,13 +129,12 @@ const { client, db } = createClient({
           return { createdAt: "desc" };
         },
         where: ({ ctx, operation }) => {
-          
           if (isOperation(OperationQuery, operation)) {
             return {
               OR: [{ authorId: { eq: ctx.get("user")?.id } }, { published: { eq: true } }],
             };
           }
-          
+
           if (isOperation(OperationMutation, operation)) {
             return { authorId: ctx.get("user")?.id };
           }
@@ -174,7 +171,6 @@ describe("Authentication and Authorization Tests", () => {
   });
 
   it("should filter findManyPost results based on authentication", async () => {
-    
     const guestResponse = await client.query<{ findManyPost: PostResponse[] }>(
       QUERY_FIND_MANY_POST,
       {
@@ -185,7 +181,6 @@ describe("Authentication and Authorization Tests", () => {
     expect(guestPosts.length).toBeGreaterThan(0);
     expect(guestPosts.every((p) => p.published)).toBe(true);
 
-    
     const userWithPrivate = await db.query.users.findFirst({
       where: { posts: { published: false } },
     });
@@ -224,7 +219,6 @@ describe("Authentication and Authorization Tests", () => {
 
     await client.mutation(MUTATION_SIGN_IN, { email: user1.email });
 
-    
     const result = await client.mutation<{ updatePost: PostResponse[] }>(MUTATION_UPDATE_POST, {
       where: { id: { eq: user2Post.id } },
       input: { title: "Unauthorized" },
@@ -243,7 +237,6 @@ describe("Authentication and Authorization Tests", () => {
 
     if (!privatePost) return;
 
-    
     const response = await client.query<{ findFirstPost: PostResponse | null }>(
       QUERY_FIND_FIRST_POST_BY_ID,
       {

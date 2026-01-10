@@ -2,6 +2,7 @@ import {
   isTable,
   sql,
   type AnyRelations,
+  type Column,
   type RelationsRecord,
   type SchemaEntry,
 } from "drizzle-orm";
@@ -16,8 +17,8 @@ import { expandOperations, OperationBasic } from "./libs/operations.js";
 import { createInputOperator, getQueryFields, type FieldTree } from "./libs/utils.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgArray, PgColumn, getTableConfig } from "drizzle-orm/pg-core";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres/driver.js";
+import type { PgColumn, getTableConfig } from "drizzle-orm/pg-core";
 import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -171,7 +172,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const drizzleOption = options.drizzle;
     const client =
       drizzleOption.client instanceof Function ? drizzleOption.client(ctx) : drizzleOption.client;
-    return client as NodePgDatabase;
+    return client as unknown as NodePgDatabase<never, never>;
   }
   getQueryTable(ctx: object, modelName: string) {
     return this.getClient(ctx).query[modelName as never] as RelationalQueryBuilder<never, never>;
@@ -353,10 +354,9 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
       },
     });
   }
-  getDataType(column: PgColumn): string | [string] {
-    const isArray = column.dataType.split(" ")[0] === "array";
-    const c = isArray ? ((column as PgArray<never, never>).baseColumn ?? column) : column;
-    const types = c.dataType.split(" ");
+  getDataType(column: Column & { dimensions?: number }): string | [string] {
+    const isArray = column.dimensions;
+    const types = column.dataType.split(" ");
     if (types[0] === "string" && types[1] !== "enum") {
       return isArray ? ["String"] : "String";
     }
@@ -365,11 +365,11 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     }
     switch (types[1] ?? types[0]) {
       case "enum": {
-        const sqlType = c.getSQLType();
+        const sqlType = column.getSQLType();
         const e = this.enums[sqlType];
         if (!e) {
           this.enums[sqlType] = this.builder.enumType(sqlType, {
-            values: c.enumValues!,
+            values: column.enumValues!,
           });
         }
         return isArray ? [sqlType] : sqlType;
