@@ -1,53 +1,44 @@
+const ops = <T extends string>(...args: T[]) => args;
+
 /**
  * Operations related to finding records.
  */
-export const OperationFind = ["findFirst", "findMany"] as const;
+export const OperationFind = ops("findFirst", "findMany");
 
 /**
  * Operations related to querying records (find and count).
  */
-export const OperationQuery = [...OperationFind, "count"] as const;
+export const OperationQuery = ops(...OperationFind, "count");
 
 /**
  * Operations related to creating records.
  */
-export const OperationCreate = ["createOne", "createMany"] as const;
+export const OperationCreate = ops("createOne", "createMany");
 
 /**
  * Operations related to updating records.
  */
-export const OperationUpdate = ["update"] as const;
+export const OperationUpdate = ops("update");
 
 /**
  * Operations related to deleting records.
  */
-export const OperationDelete = ["delete"] as const;
+export const OperationDelete = ops("delete");
 
 /**
  * All mutation operations (create, update, delete).
  */
-export const OperationMutation = [
-  ...OperationCreate,
-  ...OperationUpdate,
-  ...OperationDelete,
-] as const;
+export const OperationMutation = ops(...OperationCreate, ...OperationUpdate, ...OperationDelete);
 
 /**
  * Basic operations supported by the generator (query and mutation).
  */
-export const OperationBasic = [...OperationQuery, ...OperationMutation] as const;
+export const OperationBasic = ops(...OperationQuery, ...OperationMutation);
 
 /**
  * All available operations, including categories and basic operations.
  */
-export const OperationAll = [
-  "find",
-  "update",
-  "delete",
-  "query",
-  "mutation",
-  ...OperationBasic,
-] as const;
+export const OperationAll = ops("find", "update", "delete", "query", "mutation", ...OperationBasic);
 
 /**
  * Type representing a single operation or an operation category like "all".
@@ -60,7 +51,7 @@ export type Operation = (typeof OperationAll)[number] | "all";
  * @param operations An array of operations or operation categories.
  * @returns A flat array of basic operations.
  */
-export const expandOperations = (operations: readonly Operation[]) => {
+export const expandOperations = (operations: Operation[]) => {
   return operations.flatMap<(typeof OperationBasic)[number]>((v) =>
     v === "all"
       ? OperationBasic
