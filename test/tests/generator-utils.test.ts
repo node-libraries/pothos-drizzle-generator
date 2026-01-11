@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { replaceColumnValues } from "../../src/generator";
+import { replaceColumnValues } from "../../src/libs/resolver-helpers";
 
 describe("generator utils", () => {
   describe("replaceColumnValues", () => {

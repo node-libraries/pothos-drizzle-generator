@@ -1,31 +1,15 @@
-import { and, eq, type Column, type RelationsRecord } from "drizzle-orm";
-import {
-  getReturning,
-  type ModelData,
-  DrizzleGenerator,
-  replaceColumnValues,
-  type DbClient,
-} from "../generator.js";
+import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { createWhereQuery } from "../libs/drizzle.js";
 import { getQueryFields } from "../libs/graphql.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
+import {
+  getReturning,
+  insertRelayValue,
+  replaceColumnValues,
+  separateInput,
+} from "../libs/resolver-helpers.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { GraphQLResolveInfo } from "graphql";
-
-function separateInput(input: object, columns: Pick<Column, "name">[]) {
-  const dbColumnsInput: Record<string, unknown> = {};
-  const relationFieldsInput: [string, unknown][] = [];
-
-  for (const [key, value] of Object.entries(input)) {
-    if (columns.some((col) => col.name === key)) {
-      dbColumnsInput[key] = value;
-    } else {
-      relationFieldsInput.push([key, value]);
-    }
-  }
-
-  return { dbColumnsInput, relationFieldsInput };
-}
 
 export function defineCreateOne<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -299,59 +283,4 @@ export function defineDelete<Types extends SchemaTypes>(
       } as never),
     }),
   });
-}
-
-async function insertRelayValue({
-  results,
-  client,
-  relationInputs,
-  relations,
-}: {
-  results: Record<string, unknown>[];
-  client: DbClient;
-  relationInputs: [string, unknown][][];
-  relations: RelationsRecord;
-}) {
-  for (const index in results) {
-    const result = results[index];
-    const relationInput = relationInputs[index];
-    if (!result || !relationInput?.length) continue;
-    for (const [relationName, value] of relationInput) {
-      const inputPayload = value as { set?: Record<string, unknown>[] };
-      const itemsToSet = inputPayload.set;
-
-      const relay = relations[relationName];
-      if (!itemsToSet || !relay?.through || !relay.throughTable) continue;
-
-      const { throughTable } = relay;
-
-      const sourceToThroughMap = Object.fromEntries(
-        relay.sourceColumns.map((v, i) => [v.name, relay.through!.source[i]!._.key])
-      );
-      const targetToThroughMap = Object.fromEntries(
-        relay.targetColumns.map((v, i) => [v.name, relay.through!.target[i]!._.key])
-      );
-
-      const sourceFilters = relay.sourceColumns.map(
-        (v) => [sourceToThroughMap[v.name], result[v.name]] as const
-      );
-      await client
-        .delete(throughTable as never)
-        .where(
-          and(...sourceFilters.map(([key, val]) => eq(relay.throughTable![key as never], val)))
-        );
-
-      const insertRows = itemsToSet.map((item) => {
-        const targetValues = Object.entries(item).map(([key, val]) => [
-          targetToThroughMap[key],
-          val,
-        ]);
-        return Object.fromEntries([...targetValues, ...sourceFilters]);
-      });
-
-      if (insertRows.length > 0) {
-        await client.insert(throughTable as never).values(insertRows);
-      }
-    }
-  }
 }

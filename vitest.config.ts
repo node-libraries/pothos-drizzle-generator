@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { alias: { graphql: "graphql/index.js" } },
   test: {
     maxWorkers: "100%",
-    include: ["test/tests/*.test.ts"],
+    include: ["test/**/*.test.ts"],
     typecheck: {
       enabled: true,
     },

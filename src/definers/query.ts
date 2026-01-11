@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
-import { replaceColumnValues, type ModelData, DrizzleGenerator } from "../generator.js";
+import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { getQueryFields } from "../libs/graphql.js";
-import { checkPermissionsAndGetParams, type ResolvedOperationParams } from "../libs/permissions.js";
+import { checkPermissionsAndGetParams } from "../libs/permissions.js";
+import { prepareQueryOptions, replaceColumnValues } from "../libs/resolver-helpers.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -11,32 +12,6 @@ type QueryArgs = {
   where?: object;
   orderBy?: object[];
 };
-
-function prepareQueryOptions(args: QueryArgs, params: ResolvedOperationParams, isMany: boolean) {
-  const where = {
-    AND: [structuredClone(args.where), params.where].filter((v) => v),
-  };
-
-  const orderBy =
-    args.orderBy && Object.keys(args.orderBy).length
-      ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
-      : params.orderBy;
-
-  const queryOptions: Omit<QueryArgs, "orderBy"> & { where: object; orderBy?: object } = {
-    ...args,
-    where,
-    orderBy,
-  };
-
-  if (isMany) {
-    queryOptions.limit =
-      params.limit != null && args.limit != null
-        ? Math.min(params.limit, args.limit)
-        : (params.limit ?? args.limit);
-  }
-
-  return queryOptions;
-}
 
 export function defineFindMany<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

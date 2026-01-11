@@ -1,6 +1,5 @@
 import {
   isTable,
-  sql,
   type AnyRelations,
   type Column,
   type RelationsRecord,
@@ -13,12 +12,10 @@ import {
   DateTimeResolver,
   JSONResolver,
 } from "graphql-scalars";
-import { getQueryFields, type FieldTree } from "./libs/graphql.js";
 import { expandOperations, OperationBasic } from "./libs/operations.js";
 import { createInputOperator } from "./libs/pothos.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
-import type { GraphQLResolveInfo } from "graphql";
 
 type TableConfig = {
   columns: Column[];
@@ -126,12 +123,6 @@ export type ModelData = {
     | undefined;
 };
 
-interface QueryDataType {
-  columns?: Record<string, boolean>;
-  with?: Record<string, QueryDataType>;
-  _name?: string;
-}
-
 export class DrizzleGenerator<Types extends SchemaTypes> {
   enums: Record<string, PothosSchemaTypes.EnumRef<Types, unknown>> = {};
   inputOperators: Record<string, PothosSchemaTypes.InputObjectRef<Types, unknown>> = {};
@@ -221,7 +212,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const drizzleOption = options.drizzle;
     const client =
       drizzleOption.client instanceof Function ? drizzleOption.client(ctx) : drizzleOption.client;
-    return client as unknown as DbClient;
+    return client as typeof client & DbClient;
   }
   getQueryTable(ctx: object, modelName: string) {
     return this.getClient(ctx).query[modelName as never] as RelationalQueryBuilderShim;
@@ -447,53 +438,3 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     return isArray ? [result] : result;
   }
 }
-
-export const replaceColumnValues = (
-  tables: Record<string, ModelData>,
-  tableName: string,
-  tree: FieldTree,
-  queryData: {
-    columns?: Record<string, boolean>;
-    with?: Record<string, QueryDataType>;
-    _name?: string;
-  }
-) => {
-  if (Object.keys(tree).every((v) => v === "__typename")) {
-    return {
-      columns: {},
-      extras: { _: sql`0` },
-    };
-  }
-  const info = tables[tableName]!;
-  const columns = info?.columns;
-  if (columns) {
-    queryData.columns = Object.fromEntries(
-      Object.entries(tree).flatMap(([name, value]) =>
-        value === true && columns.find((v) => v.name === name) ? [[name, true]] : []
-      )
-    );
-  }
-  if (queryData.with) {
-    Object.entries(queryData.with).forEach(([name, query]) => {
-      if (typeof tree[name] === "object") {
-        replaceColumnValues(tables, (query as { _name: string })._name, tree[name], query);
-      }
-    });
-  }
-  return queryData;
-};
-
-export const getReturning = (info: GraphQLResolveInfo, columns: Column[], primary?: boolean) => {
-  const queryFields = getQueryFields(info);
-  const isRelay = Object.keys(queryFields).some((v) => !columns.find((c) => c.name === v));
-  const returningColumns = columns.filter(
-    (v) => queryFields[v.name] || ((primary || isRelay) && v.primary)
-  );
-  if (!returningColumns.length) return { isRelay, queryFields, returning: undefined };
-  const returning = Object.fromEntries(returningColumns.map((v) => [v.name, v]));
-  return {
-    isRelay,
-    queryFields,
-    returning,
-  };
-};
