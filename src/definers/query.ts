@@ -1,9 +1,42 @@
 import { sql } from "drizzle-orm";
 import { replaceColumnValues, type ModelData, DrizzleGenerator } from "../generator.js";
 import { getQueryFields } from "../libs/graphql.js";
-import { checkPermissionsAndGetParams } from "../libs/permissions.js";
+import { checkPermissionsAndGetParams, type ResolvedOperationParams } from "../libs/permissions.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { GraphQLResolveInfo } from "graphql";
+
+type QueryArgs = {
+  offset?: number;
+  limit?: number;
+  where?: object;
+  orderBy?: object[];
+};
+
+function prepareQueryOptions(args: QueryArgs, params: ResolvedOperationParams, isMany: boolean) {
+  const where = {
+    AND: [structuredClone(args.where), params.where].filter((v) => v),
+  };
+
+  const orderBy =
+    args.orderBy && Object.keys(args.orderBy).length
+      ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
+      : params.orderBy;
+
+  const queryOptions: Omit<QueryArgs, "orderBy"> & { where: object; orderBy?: object } = {
+    ...args,
+    where,
+    orderBy,
+  };
+
+  if (isMany) {
+    queryOptions.limit =
+      params.limit != null && args.limit != null
+        ? Math.min(params.limit, args.limit)
+        : (params.limit ?? args.limit);
+  }
+
+  return queryOptions;
+}
 
 export function defineFindMany<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -30,33 +63,23 @@ export function defineFindMany<Types extends SchemaTypes>(
         resolve: async (
           query: (selection: unknown) => object,
           _parent: unknown,
-          args: { limit?: number; where: object; orderBy?: object[] },
+          args: QueryArgs,
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
           const params = checkPermissionsAndGetParams(modelName, "findMany", ctx, info, modelData);
+          const queryOptions = prepareQueryOptions(args, params, true);
 
-          return generator.getQueryTable(ctx, modelName).findMany(
-            replaceColumnValues(
-              tables,
-              modelName,
-              getQueryFields(info),
-              query({
-                ...args,
-                limit:
-                  params.limit && args.limit
-                    ? Math.min(params.limit, args.limit)
-                    : (params.limit ?? args.limit),
-                where: {
-                  AND: [structuredClone(args.where), params.where].filter((v) => v),
-                },
-                orderBy:
-                  args.orderBy && Object.keys(args.orderBy).length
-                    ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
-                    : params.orderBy,
-              })
-            ) as never
-          );
+          return generator
+            .getQueryTable(ctx, modelName)
+            .findMany(
+              replaceColumnValues(
+                tables,
+                modelName,
+                getQueryFields(info),
+                query(queryOptions)
+              ) as never
+            );
         },
       } as never),
     }),
@@ -86,29 +109,23 @@ export function defineFindFirst<Types extends SchemaTypes>(
         resolve: async (
           query: (selection: unknown) => object,
           _parent: unknown,
-          args: { where: object; orderBy?: object[] },
+          args: QueryArgs,
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
           const params = checkPermissionsAndGetParams(modelName, "findFirst", ctx, info, modelData);
+          const queryOptions = prepareQueryOptions(args, params, false);
 
-          return generator.getQueryTable(ctx, modelName).findFirst(
-            replaceColumnValues(
-              tables,
-              modelName,
-              getQueryFields(info),
-              query({
-                ...args,
-                where: {
-                  AND: [structuredClone(args.where), params.where].filter((v) => v),
-                },
-                orderBy:
-                  args.orderBy && Object.keys(args.orderBy).length
-                    ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
-                    : params.orderBy,
-              })
-            ) as never
-          );
+          return generator
+            .getQueryTable(ctx, modelName)
+            .findFirst(
+              replaceColumnValues(
+                tables,
+                modelName,
+                getQueryFields(info),
+                query(queryOptions)
+              ) as never
+            );
         },
       } as never),
     }),

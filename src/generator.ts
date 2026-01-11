@@ -439,11 +439,11 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
       return isArray ? ["Int"] : "Int";
     }
     const type = isArray ? types[1]! : types[0]!;
-    const scalerMap: Record<string, string> = {
+    const scalarMap: Record<string, string> = {
       number: "Float",
       string: "String",
     };
-    const result = scalerMap[type] ?? "String";
+    const result = scalarMap[type] ?? "String";
     return isArray ? [result] : result;
   }
 }
@@ -486,14 +486,14 @@ export const replaceColumnValues = (
 export const getReturning = (info: GraphQLResolveInfo, columns: Column[], primary?: boolean) => {
   const queryFields = getQueryFields(info);
   const isRelay = Object.keys(queryFields).some((v) => !columns.find((c) => c.name === v));
-  const returnFields = columns
-    .filter((v) => queryFields[v.name] || ((primary || isRelay) && v.primary))
-    .map((v) => [v.name, v]);
-  if (!returnFields.length) return { isRelay, queryFields, returning: undefined };
-  const returning = Object.fromEntries(returnFields);
+  const returningColumns = columns.filter(
+    (v) => queryFields[v.name] || ((primary || isRelay) && v.primary)
+  );
+  if (!returningColumns.length) return { isRelay, queryFields, returning: undefined };
+  const returning = Object.fromEntries(returningColumns.map((v) => [v.name, v]));
   return {
     isRelay,
     queryFields,
-    returning: Object.fromEntries(columns.filter((v) => returning[v.name]).map((v) => [v.name, v])),
+    returning,
   };
 };

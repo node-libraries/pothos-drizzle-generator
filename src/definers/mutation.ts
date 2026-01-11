@@ -1,4 +1,4 @@
-import { and, eq, type RelationsRecord } from "drizzle-orm";
+import { and, eq, type Column, type RelationsRecord } from "drizzle-orm";
 import {
   getReturning,
   type ModelData,
@@ -11,6 +11,21 @@ import { getQueryFields } from "../libs/graphql.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { GraphQLResolveInfo } from "graphql";
+
+function separateInput(input: object, columns: Pick<Column, "name">[]) {
+  const dbColumnsInput: Record<string, unknown> = {};
+  const relationFieldsInput: [string, unknown][] = [];
+
+  for (const [key, value] of Object.entries(input)) {
+    if (columns.some((col) => col.name === key)) {
+      dbColumnsInput[key] = value;
+    } else {
+      relationFieldsInput.push([key, value]);
+    }
+  }
+
+  return { dbColumnsInput, relationFieldsInput };
+}
 
 export function defineCreateOne<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -37,12 +52,7 @@ export function defineCreateOne<Types extends SchemaTypes>(
           const client = generator.getClient(ctx);
           const params = checkPermissionsAndGetParams(modelName, "createOne", ctx, info, modelData);
           const combinedInput = { ...args.input, ...params.input };
-          const dbColumnsInput = Object.fromEntries(
-            Object.entries(combinedInput).filter(([key]) => columns.some((col) => col.name === key))
-          );
-          const relationFieldsInput = Object.entries(combinedInput).filter(([key]) =>
-            columns.every((col) => col.name !== key)
-          );
+          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns);
           const hasRelationInput = relationFieldsInput.length > 0;
           const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
           if (!isRelay) {
@@ -113,14 +123,9 @@ export function defineCreateMany<Types extends SchemaTypes>(
             ...v,
             ...params.input,
           }));
-          const dbColumnsInputs = combinedInputs.map((input) =>
-            Object.fromEntries(
-              Object.entries(input).filter(([key]) => columns.some((col) => col.name === key))
-            )
-          );
-          const relationFieldsInputs = combinedInputs.map((v) =>
-            Object.entries(v).filter(([key]) => columns.every((col) => col.name !== key))
-          );
+          const separatedInputs = combinedInputs.map((input) => separateInput(input, columns));
+          const dbColumnsInputs = separatedInputs.map((i) => i.dbColumnsInput);
+          const relationFieldsInputs = separatedInputs.map((i) => i.relationFieldsInput);
 
           const hasRelationInput = relationFieldsInputs.some((v) => v.length > 0);
           const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
@@ -186,12 +191,7 @@ export function defineUpdate<Types extends SchemaTypes>(
           const client = generator.getClient(ctx);
           const params = checkPermissionsAndGetParams(modelName, "update", ctx, info, modelData);
           const combinedInput = { ...args.input, ...params.input };
-          const dbColumnsInput = Object.fromEntries(
-            Object.entries(combinedInput).filter(([key]) => columns.some((col) => col.name === key))
-          );
-          const relationFieldsInput = Object.entries(combinedInput).filter(([key]) =>
-            columns.every((col) => col.name !== key)
-          );
+          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns);
           const hasRelationInput = relationFieldsInput.length > 0;
           const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
 
