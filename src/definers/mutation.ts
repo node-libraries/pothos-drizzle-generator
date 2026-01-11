@@ -1,15 +1,15 @@
-import { and, eq, type RelationsRecord, type EmptyRelations } from "drizzle-orm";
+import { and, eq, type RelationsRecord } from "drizzle-orm";
 import {
   getReturning,
   type ModelData,
   DrizzleGenerator,
   replaceColumnValues,
+  type DbClient,
 } from "../generator.js";
 import { createWhereQuery } from "../libs/drizzle.js";
 import { getQueryFields } from "../libs/graphql.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
 import type { SchemaTypes } from "@pothos/core";
-import type { PgAsyncTransaction, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { GraphQLResolveInfo } from "graphql";
 
 export function defineCreateOne<Types extends SchemaTypes>(
@@ -132,7 +132,7 @@ export function defineCreateMany<Types extends SchemaTypes>(
             return client
               .insert(table as never)
               .values(dbColumnsInputs as never)
-              .then((v) => Array(v.rowCount!).fill({}));
+              .then((v) => Array("rowCount" in v ? v.rowCount : v.rowsAffected).fill({}));
           }
           return client.transaction(async (tx) =>
             tx
@@ -207,11 +207,7 @@ export function defineUpdate<Types extends SchemaTypes>(
               .update(table as never)
               .set(dbColumnsInput as never)
               .where(whereQuery)
-              .then((v) =>
-                Array(v.rowCount ?? (v as typeof v & { rowsAffected: number }).rowsAffected).fill(
-                  {}
-                )
-              );
+              .then((v) => Array("rowCount" in v ? v.rowCount : v.rowsAffected).fill({}));
           }
 
           return client.transaction(async (tx) =>
@@ -298,25 +294,21 @@ export function defineDelete<Types extends SchemaTypes>(
                 .getClient(ctx)
                 .delete(table as never)
                 .where(whereQuery)
-                .then((v) =>
-                  Array(v.rowCount ?? (v as typeof v & { rowsAffected: number }).rowsAffected).fill(
-                    {}
-                  )
-                );
+                .then((v) => Array("rowCount" in v ? v.rowCount : v.rowsAffected).fill({}));
         },
       } as never),
     }),
   });
 }
 
-async function insertRelayValue<TQueryResult extends PgQueryResultHKT>({
+async function insertRelayValue({
   results,
   client,
   relationInputs,
   relations,
 }: {
   results: Record<string, unknown>[];
-  client: PgAsyncTransaction<TQueryResult, EmptyRelations>;
+  client: DbClient;
   relationInputs: [string, unknown][][];
   relations: RelationsRecord;
 }) {

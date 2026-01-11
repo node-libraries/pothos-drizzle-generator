@@ -5,7 +5,6 @@ import {
   type Column,
   type RelationsRecord,
   type SchemaEntry,
-  type TablesRelationalConfig,
 } from "drizzle-orm";
 import {
   BigIntResolver,
@@ -19,19 +18,69 @@ import { expandOperations, OperationBasic } from "./libs/operations.js";
 import { createInputOperator } from "./libs/pothos.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleClient } from "@pothos/plugin-drizzle";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgAsyncRelationalQueryHKT, PgColumn, getTableConfig } from "drizzle-orm/pg-core";
-import type { RelationalQueryBuilder } from "drizzle-orm/pg-core/query-builders/query";
 import type { GraphQLResolveInfo } from "graphql";
+
+type TableConfig = {
+  columns: Column[];
+  primaryKeys: { columns: Column[] }[];
+  name: string;
+};
+
+type RelationalQueryBuilderShim = {
+  findFirst: (args: unknown) => Promise<unknown>;
+  findMany: (args: unknown) => Promise<unknown[]>;
+};
+
+export type DbClient = {
+  query: Record<string, RelationalQueryBuilderShim>;
+  select: (columns: Record<string, unknown>) => {
+    from: (table: unknown) => {
+      leftJoin: (
+        table: unknown,
+        condition: unknown
+      ) => {
+        where: (condition: unknown) => unknown;
+      };
+      where: (condition: unknown) => unknown;
+    };
+  };
+  insert: (table: unknown) => {
+    values: (values: unknown) => {
+      returning: (returning: unknown) => Promise<Record<string, unknown>[]>;
+      then: (
+        onfulfilled: (value: { rowCount: number } | { rowsAffected: number }) => unknown
+      ) => Promise<unknown>;
+    };
+  };
+  update: (table: unknown) => {
+    set: (values: unknown) => {
+      where: (condition: unknown) => {
+        returning: (returning: unknown) => Promise<Record<string, unknown>[]>;
+        then: (
+          onfulfilled: (value: { rowCount: number } | { rowsAffected: number }) => unknown
+        ) => Promise<unknown>;
+      };
+    };
+  };
+  delete: (table: unknown) => {
+    where: (condition: unknown) => {
+      returning: (returning: unknown) => Promise<Record<string, unknown>[]>;
+      then: (
+        onfulfilled: (value: { rowCount: number } | { rowsAffected: number }) => unknown
+      ) => Promise<unknown>;
+    };
+  };
+  transaction: <T>(callback: (tx: DbClient) => Promise<T>) => Promise<T>;
+};
 
 export type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
   filterColumns: string[];
-  columns: PgColumn[];
-  primaryColumns: PgColumn[];
-  inputColumns: PgColumn[];
-  tableInfo: ReturnType<typeof getTableConfig>;
+  columns: Column[];
+  primaryColumns: Column[];
+  inputColumns: Column[];
+  tableInfo: TableConfig;
   relations: RelationsRecord;
   executable?:
     | ((params: {
@@ -96,9 +145,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
   }
   getTableConfig() {
     const drizzleOption = this.builder.options.drizzle;
-    return drizzleOption.getTableConfig as (
-      param: Parameters<typeof getTableConfig>[0] | SchemaEntry
-    ) => ReturnType<typeof getTableConfig>;
+    return drizzleOption.getTableConfig as (param: SchemaEntry) => TableConfig;
   }
   createTableInfo(): Record<string, ModelData> {
     const options = this.builder.options.pothosDrizzleGenerator;
@@ -174,14 +221,10 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const drizzleOption = options.drizzle;
     const client =
       drizzleOption.client instanceof Function ? drizzleOption.client(ctx) : drizzleOption.client;
-    return client as unknown as NodePgDatabase;
+    return client as unknown as DbClient;
   }
   getQueryTable(ctx: object, modelName: string) {
-    return this.getClient(ctx).query[modelName as never] as RelationalQueryBuilder<
-      TablesRelationalConfig,
-      TablesRelationalConfig[string],
-      PgAsyncRelationalQueryHKT
-    >;
+    return this.getClient(ctx).query[modelName as never] as RelationalQueryBuilderShim;
   }
   getRelations(): AnyRelations {
     const drizzleOption = this.builder.options.drizzle;
@@ -245,7 +288,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
 
     return this.getInputType(modelName, "Create", {
       fields: (t) => {
-        const dbFields = inputColumns.map((col: PgColumn) => [
+        const dbFields = inputColumns.map((col: Column) => [
           col.name,
           t.field({
             type: this.getDataType(col),
@@ -266,7 +309,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const { inputColumns } = this.getTables()[modelName]!;
     return this.getInputType(modelName, "Update", {
       fields: (t) => {
-        const dbFields = inputColumns.map((c: PgColumn) => [
+        const dbFields = inputColumns.map((c: Column) => [
           c.name,
           t.field({
             type: this.getDataType(c),
@@ -288,7 +331,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
           ["AND", t.field({ type: [inputWhere] })],
           ["OR", t.field({ type: [inputWhere] })],
           ["NOT", t.field({ type: inputWhere })],
-          ...tableInfo.columns.map((c: PgColumn) => {
+          ...tableInfo.columns.map((c: Column) => {
             return [
               c.name,
               t.field({
@@ -317,7 +360,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const inputWhere = this.getInputType(modelName, "OrderBy", {
       fields: (t) => {
         return Object.fromEntries(
-          tableInfo.columns.map((c: PgColumn) => {
+          tableInfo.columns.map((c: Column) => {
             return [
               c.name,
               t.field({
@@ -440,7 +483,7 @@ export const replaceColumnValues = (
   return queryData;
 };
 
-export const getReturning = (info: GraphQLResolveInfo, columns: PgColumn[], primary?: boolean) => {
+export const getReturning = (info: GraphQLResolveInfo, columns: Column[], primary?: boolean) => {
   const queryFields = getQueryFields(info);
   const isRelay = Object.keys(queryFields).some((v) => !columns.find((c) => c.name === v));
   const returnFields = columns

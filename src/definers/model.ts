@@ -1,10 +1,9 @@
-import { and, eq, sql, type AnyRelation } from "drizzle-orm";
+import { and, eq, sql, type AnyRelation, type Table } from "drizzle-orm";
 import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { createWhereQuery } from "../libs/drizzle.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
-import type { PgTable } from "drizzle-orm/pg-core";
 
 export function defineModelObject<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -144,7 +143,7 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
             return {
               columns: {},
               extras: {
-                [`${relayName}Count`]: (table: PgTable) => {
+                [`${relayName}Count`]: (table: Table) => {
                   const client = generator.getClient(ctx);
                   return client
                     .select({ count: sql`count(*)` })

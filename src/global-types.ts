@@ -7,8 +7,10 @@ import type {
   GetTableViewFieldSelection,
   RelationsFilter,
   SchemaEntry,
+  Table,
+  SQL,
+  InferInsertModel,
 } from "drizzle-orm";
-import type { PgTable, PgUpdateSetSource } from "drizzle-orm/pg-core";
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -165,10 +167,17 @@ declare global {
       | undefined;
 
     /**
+     * Generic UpdateSetSource for any Table.
+     */
+    type UpdateSetSource<T extends Table> = {
+      [K in keyof InferInsertModel<T>]?: InferInsertModel<T>[K] | SQL;
+    };
+
+    /**
      * Return type for the `inputData` option, used for create/update operations.
      */
     type InputDataReturn<Types extends SchemaTypes, U extends TableNames<Types>> =
-      | (PgUpdateSetSource<GetTable<Types, U> extends PgTable ? GetTable<Types, U> : never> & {
+      | (UpdateSetSource<GetTable<Types, U> extends Table ? GetTable<Types, U> : never> & {
           [K in keyof Relations<Types>[U]["relations"] as Relations<Types>[U]["relations"][K] extends AnyMany
             ? K
             : never]?: {

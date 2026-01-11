@@ -17,7 +17,6 @@ app.get("/", (c) => {
   return c.html(
     explorer({
       initialState: {
-        
         document: generate(schema, 1),
       },
       endpointUrl: "/",
