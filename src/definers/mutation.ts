@@ -17,12 +17,13 @@ export function defineCreateOne<Types extends SchemaTypes>(
   modelName: string,
   modelData: ModelData
 ) {
-  const { tableInfo, columns, table, relations } = modelData;
+  const { tableInfo, columns, table, relations, tableSingularAlias, operationAliases } = modelData;
   const inputCreate = generator.getInputCreate(modelName);
+  const operationName = operationAliases.createOne ?? `createOne${tableSingularAlias}`;
 
   builder.mutationType({
     fields: (t) => ({
-      [`createOne${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: modelName,
         nullable: false,
         args: { input: t.arg({ type: inputCreate, required: true }) },
@@ -78,12 +79,13 @@ export function defineCreateMany<Types extends SchemaTypes>(
   modelName: string,
   modelData: ModelData
 ) {
-  const { tableInfo, columns, table, relations } = modelData;
+  const { tableInfo, columns, table, relations, tableSingularAlias, operationAliases } = modelData;
   const inputCreate = generator.getInputCreate(modelName);
+  const operationName = operationAliases.createMany ?? `createMany${tableSingularAlias}`;
 
   builder.mutationType({
     fields: (t) => ({
-      [`createMany${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: [modelName],
         nullable: false,
         args: { input: t.arg({ type: [inputCreate], required: true }) },
@@ -152,13 +154,14 @@ export function defineUpdate<Types extends SchemaTypes>(
   modelName: string,
   modelData: ModelData
 ) {
-  const { tableInfo, columns, table, relations } = modelData;
+  const { tableInfo, columns, table, relations, tableSingularAlias, operationAliases } = modelData;
   const inputUpdate = generator.getInputUpdate(modelName);
   const inputWhere = generator.getInputWhere(modelName);
+  const operationName = operationAliases.update ?? `update${tableSingularAlias}`;
 
   builder.mutationType({
     fields: (t) => ({
-      [`update${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: [modelName],
         nullable: false,
         args: {
@@ -225,12 +228,13 @@ export function defineDelete<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableInfo, columns, table } = modelData;
+  const { tableInfo, columns, table, tableSingularAlias, operationAliases } = modelData;
   const inputWhere = generator.getInputWhere(modelName);
+  const operationName = operationAliases.delete ?? `delete${tableSingularAlias}`;
 
   builder.mutationType({
     fields: (t) => ({
-      [`delete${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: [modelName],
         nullable: false,
         args: { where: t.arg({ type: inputWhere }) },
