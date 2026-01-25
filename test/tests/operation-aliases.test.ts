@@ -1,12 +1,7 @@
 import { gql } from "@urql/core";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { relations } from "../db/relations";
-import {
-  createApp,
-  createClient,
-  getGraphqlOperations,
-  getSearchPath,
-} from "../libs/test-tools";
+import { createApp, createClient, getGraphqlOperations, getSearchPath } from "../libs/test-tools";
 
 describe("Operation Aliases", () => {
   describe("Schema Generation with Aliases", () => {
@@ -304,7 +299,7 @@ describe("Operation Aliases", () => {
 
     it("should execute delete mutation using alias", async () => {
       const post = await db.query.posts.findFirst({
-        where: (posts, { eq }) => eq(posts.title, "Aliased Post"),
+        where: { title: { eq: "Aliased Post" } },
       });
       if (!post) throw new Error("Post to delete not found");
 
