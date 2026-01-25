@@ -111,9 +111,22 @@ declare global {
       | { exclude: T[]; include?: undefined };
 
     /**
+     * Customize names for generated types for a model. Use `singular` and
+     * `plural` for model names, and `operations` to customize operation names.
+     */
+    type AliasConfiguration = {
+      singular?: string;
+      plural?: string;
+      operations?: { [key in (typeof OperationBasic)[number]]?: string };
+    };
+
+    /**
      * Selection of operations to include or exclude.
      */
-    type OperationSelection = { include?: Operation[]; exclude?: Operation[] } | undefined;
+    type OperationSelection = { 
+      include?: Operation[]; 
+      exclude?: Operation[];
+    } | undefined;
 
     /**
      * Operators for filtering a specific column.
@@ -203,6 +216,11 @@ declare global {
        * Define which operations (findMany, findFirst, etc.) to generate.
        */
       operations?: <T extends U>(params: ModelParams<Types, T>) => OperationSelection;
+
+      /**
+       * Customize names for types generated for the model (Operations, model name, etc.).
+       */
+      aliases?: <T extends U>(params: ModelParams<Types, T>) => AliasConfiguration;
 
       /**
        * Define which fields to include or exclude in the input types.

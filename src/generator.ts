@@ -73,6 +73,9 @@ export type DbClient = {
 export type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
+  tableSingularAlias: string;
+  tablePluralAlias: string;
+  operationAliases: { [key in (typeof OperationBasic)[number]]?: string };
   filterColumns: string[];
   columns: Column[];
   primaryColumns: Column[];
@@ -162,7 +165,15 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         const operationIncludes = expandOperations(operationValue?.include ?? OperationBasic);
         const operationExcludes = expandOperations(operationValue?.exclude ?? []);
         const operations = operationIncludes.filter((v) => !operationExcludes.includes(v));
-
+        
+        const aliasesValue = (modelOptions?.aliases ?? allOptions?.aliases)?.({
+          modelName,
+        });
+        
+        const operationAliasValue = (aliasesValue?.operations ?? {});
+        const tableSingularAlias = aliasesValue?.singular ?? tableInfo.name;
+        const tablePluralAlias = aliasesValue?.plural ?? `${tableInfo.name}s`;
+        
         const columnValue = (modelOptions?.fields ?? allOptions?.fields)?.({
           modelName,
         });
@@ -189,6 +200,9 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
             filterColumns,
             primaryColumns,
             operations,
+            operationAliases: operationAliasValue,
+            tableSingularAlias,
+            tablePluralAlias,
             inputColumns: columns.filter((c) => filterInputColumns.includes(c.name)),
             tableInfo,
             executable: modelOptions?.executable ?? allOptions?.executable,
@@ -240,8 +254,8 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
   ) {
     if (!this.inputType[modelName]) this.inputType[modelName] = {};
     if (this.inputType[modelName][type]) return this.inputType[modelName][type];
-    const { tableInfo } = this.getTables()[modelName]!;
-    const input = this.builder.inputRef(`${tableInfo.name}${type}`);
+    const { tableSingularAlias } = this.getTables()[modelName]!;
+    const input = this.builder.inputRef(`${tableSingularAlias}${type}`);
     input.implement(options);
     this.inputType[modelName][type] = input;
     return input;
@@ -333,11 +347,11 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
           ...Object.entries(relations).map(([key, relay]) => {
             const table = this.getTable(relay.targetTable);
             if (!table) return [];
-            const { tableInfo } = table;
+            const { tableSingularAlias } = table;
             return [
               key,
               t.field({
-                type: `${tableInfo.name}Where`,
+                type: `${tableSingularAlias}Where`,
               }),
             ];
           }),

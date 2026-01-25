@@ -68,19 +68,97 @@ pothosDrizzleGenerator: {
 
 The following callbacks can be used within both `all` and `models`.
 
-| Property      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Arguments                       | Expected Return                                    |
-| ------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | :------------------------------------------------- |
-| `executable`  | **Authorization Check**: Determines if a specific operation on a model is allowed to execute. Return `true` to allow, `false` to block. This is ideal for implementing role-based access control or context-sensitive permissions. <br/> **Example**: Block all mutations for unauthenticated users, or restrict access to certain models based on user roles.                                                                                                                                                                                                | `{ ctx, modelName, operation }` | `boolean`                                          |
-| `fields`      | **Output Field Visibility**: Controls which fields are exposed in the GraphQL output type for a given model. Useful for hiding sensitive data like passwords or internal timestamps from being returned in queries. <br/> **Example**: Exclude `password` and `email` fields for a `User` model when accessed by non-admin users.                                                                                                                                                                                                                             | `{ modelName }`                 | `{ include?: string[], exclude?: string[] }`       |
-| `inputFields` | **Input Field Visibility (for Mutations)**: Controls which fields can be provided as input for mutations (create/update). This is crucial for preventing users from directly manipulating system-managed fields like `createdAt`, `updatedAt`, or `id`. <br/> **Example**: Prevent users from setting `createdAt` or `updatedAt` values during a `create` operation.                                                                                                                                                                                          | `{ modelName }`                 | `{ include?: string[], exclude?: string[] }`       |
-| `operations`  | **CRUD Operation Selection**: Dictates which CRUD (Create, Read, Update, Delete) operations (e.g., `findMany`, `createOne`, `update`, `delete`) are generated and exposed for a model. This allows for fine-grained control over a model's capabilities within your API. <br/> **Example**: Make a `Product` model read-only by excluding `create`, `update`, and `delete` operations, or disable `delete` for critical `User` records.                                                                                                                       | `{ modelName }`                 | `{ include?: Operation[], exclude?: Operation[] }` |
-| `where`       | **Mandatory Filters**: Applies a mandatory `WHERE` clause to all queries and mutations for a given model. This is essential for implementing multi-tenancy, soft deletes, or ensuring users can only access their own data. These filters are _always_ applied and cannot be overridden by client-side queries. <br/> **Example**: For a `Post` model, automatically filter to only show posts belonging to the current `tenantId` or only `published` posts. For a `User` model, ensure a user can only `findFirst`, `update`, or `delete` their own record. | `{ ctx, modelName, operation }` | `FilterObject`                                     |
-| `limit`       | **Default Query Limit**: Sets a default maximum number of records that can be returned by `findMany` queries for a model. This helps prevent accidental large data fetches and can be a first line of defense against denial-of-service attacks. Can often be overridden by client input, but provides a safe default. <br/> **Example**: Set a default limit of 50 for all `findMany` queries on a `Comment` model.                                                                                                                                          | `{ ctx, modelName, operation }` | `number`                                           |
-| `depthLimit`  | **Query Depth Limit**: Controls the maximum depth of nested relations that can be queried for a model. This is a critical performance and security feature, preventing overly complex and resource-intensive queries that could otherwise be used for denial-of-service attacks. <br/> **Example**: Restrict `User` queries to a depth of 2 to prevent clients from fetching deeply nested associated data like `User -> Posts -> Comments -> Authors`.                                                                                                       | `{ ctx, modelName, operation }` | `number`                                           |
-| `orderBy`     | **Default Sort Order**: Defines the default `ORDER BY` clause for `findMany` queries. This ensures consistent sorting of data when no specific sort order is provided by the client, or can enforce a specific default presentation order. <br/> **Example**: Always sort `BlogPost` records by `createdAt` in descending order by default.                                                                                                                                                                                                                   | `{ ctx, modelName, operation }` | `{ [col: string]: 'asc' \| 'desc' }`               |
-| `inputData`   | **Inject Server-Side Values**: Allows injection of server-side computed or contextual values into mutation inputs _before_ the data is persisted. This is invaluable for automatically setting fields like `authorId` (from `ctx.userId`), `createdAt`, `updatedAt`, or `tenantId` without requiring client input. <br/> **Example**: Automatically set the `authorId` for a new `Post` to the `id` of the currently authenticated user, or set `createdAt` and `updatedAt` timestamps.                                                                       | `{ ctx, modelName, operation }` | `Object`                                           |
+| Property      | Purpose                                                    | Arguments                       | Expected Return                                        |
+| ------------- | ---------------------------------------------------------- | ------------------------------- | ------------------------------------------------------ |
+| `executable`  | Authorization check. Return `false` to block execution.    | `{ ctx, modelName, operation }` | `boolean`                                              |
+| `fields`      | Control output field visibility.                           | `{ modelName }`                 | `{ include?: [], exclude?: [] }`                       |
+| `inputFields` | Control input field visibility (for mutations).            | `{ modelName }`                 | `{ include?: [], exclude?: [] }`                       |
+| `operations`  | Select which CRUD operations to generate.                  | `{ modelName }`                 | `{ include?: [], exclude?: [] }`                       |
+| `aliases`     | Customize GraphQL type and operation names.                | `{ modelName }`                 | `{ singular?: string, plural?: string, operations?: {} }` |
+| `where`       | Apply mandatory filters (e.g., multi-tenancy).             | `{ ctx, modelName, operation }` | `FilterObject`                                         |
+| `limit`       | Set default max records for `findMany`.                    | `{ ctx, modelName, operation }` | `number`                                               |
+| `depthLimit`  | Prevent deeply nested queries.                             | `{ ctx, modelName, operation }` | `number`                                               |
+| `orderBy`     | Set default sort order.                                    | `{ ctx, modelName, operation }` | `{ [col]: 'asc' \| 'desc' }`                           |
+| `inputData`   | Inject server-side values (e.g., `userId`) into mutations. | `{ ctx, modelName, operation }` | `Object`                                               |
 
-## 5. Helper Functions
+## 5. Aliases - Customize Type & Operation Names
+
+The `aliases` configuration allows you to customize both GraphQL type names and operation names, giving you full control over your API's naming conventions.
+
+### Type Name Aliases
+
+Use `singular` to rename the GraphQL type generated for a model:
+
+```ts
+pothosDrizzleGenerator: {
+  models: {
+    posts: {
+      aliases: () => ({
+        singular: "Article",  // Renames "Post" → "Article"
+      })
+    }
+  }
+}
+```
+
+This changes:
+- GraphQL type: `Post` → `Article`
+- Input types: `PostCreate` → `ArticleCreate`, `PostWhere` → `ArticleWhere`, etc.
+
+### Operation Name Aliases
+
+Use `operations` to rename individual CRUD operations:
+
+```ts
+pothosDrizzleGenerator: {
+  models: {
+    posts: {
+      aliases: () => ({
+        operations: {
+          findMany: "listArticles",
+          findFirst: "getArticle",
+          count: "countArticles",
+          createOne: "createArticle",
+          createMany: "createArticles",
+          update: "updateArticles",
+          delete: "deleteArticles",
+        }
+      })
+    }
+  }
+}
+```
+
+**Default Behavior:**
+- If an operation alias is provided, it's used directly as the operation name
+- If no operation alias is provided, the default pattern is used: `{operation}{SingularTypeName}`
+  - Examples: `findManyPost`, `createOneUser`, `updateCategory`
+
+### Combining Type & Operation Aliases
+
+You can use both together for complete customization:
+
+```ts
+pothosDrizzleGenerator: {
+  models: {
+    posts: {
+      aliases: () => ({
+        singular: "BlogPost",
+        operations: {
+          findMany: "listBlogPosts",
+          createOne: "publishBlogPost",
+        }
+      })
+    }
+  }
+}
+```
+
+This creates:
+- Type: `BlogPost` (with `BlogPostCreate`, `BlogPostWhere`, etc.)
+- Operations: `listBlogPosts`, `publishBlogPost`, `findFirstBlogPost`, `countBlogPost`, etc.
+
+## 6. Helper Functions
 
 Import `isOperation` to simplify conditional logic within your callbacks.
 
@@ -110,7 +188,7 @@ executable: ({ ctx, operation }) => {
 
 ---
 
-## 🛡️ Comprehensive Configuration Example
+## 7. Comprehensive Configuration Example
 
 This example demonstrates a production-ready setup combining global security rules with specific model overrides, showcasing advanced usage of various configuration options.
 
@@ -198,10 +276,15 @@ const builder = new SchemaBuilder<PothosTypes>({
         },
         // Limit: Enforce that only one user record can be fetched at a time via `findFirst` or specific `findMany` queries.
         limit: () => 1,
-        // Operations: Prevent direct deletion of user accounts via the API.
-        operations: () => ({ exclude: ["delete", "createMany"] }),
-        // Input Fields: Further restrict input fields for user updates.
-        inputFields: () => ({ exclude: ["isAdmin", "permissions"] }), // Prevent users from changing their own roles
+        operations: () => ({ exclude: ["delete"] }),
+        // Naming: Use domain-specific terminology
+        aliases: () => ({
+          singular: "Member",
+          operations: {
+            findMany: "listMembers",
+            findFirst: "getMember",
+          }
+        }),
       },
 
       posts: {
@@ -260,6 +343,15 @@ const builder = new SchemaBuilder<PothosTypes>({
           }
           return {};
         },
+        // Naming: Blog-specific operations
+        aliases: () => ({
+          singular: "Article",
+          operations: {
+            createOne: "publish",
+            update: "revise",
+            delete: "unpublish",
+          }
+        }),
       },
 
       auditLogs: {

@@ -12,14 +12,14 @@ export function defineModelObject<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableInfo, relations, columns, filterColumns } = modelData;
+  const { tableInfo, relations, columns, filterColumns, tableSingularAlias } = modelData;
 
   const filterRelations = Object.entries(relations).filter(
     ([, relay]) => tables[relay.targetTableName]
   );
 
   builder.drizzleObject(modelName as never, {
-    name: tableInfo.name,
+    name: tableSingularAlias,
     fields: (t) => {
       const relayList = filterRelations
         .filter(([name]) => filterColumns.includes(name))

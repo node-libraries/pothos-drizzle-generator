@@ -20,13 +20,14 @@ export function defineFindMany<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableInfo } = modelData;
+  const { tableSingularAlias, operationAliases } = modelData;
   const inputWhere = generator.getInputWhere(modelName);
   const inputOrderBy = generator.getInputOrderBy(modelName);
+  const operationName = operationAliases.findMany ?? `findMany${tableSingularAlias}`;
 
   builder.queryType({
     fields: (t) => ({
-      [`findMany${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: [modelName],
         nullable: false,
         args: {
@@ -68,13 +69,14 @@ export function defineFindFirst<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableInfo } = modelData;
+  const { tableSingularAlias, operationAliases } = modelData;
   const inputWhere = generator.getInputWhere(modelName);
   const inputOrderBy = generator.getInputOrderBy(modelName);
+  const operationName = operationAliases.findFirst ?? `findFirst${tableSingularAlias}`;
 
   builder.queryType({
     fields: (t) => ({
-      [`findFirst${tableInfo.name}`]: t.drizzleField({
+      [operationName]: t.drizzleField({
         type: modelName,
         args: {
           offset: t.arg({ type: "Int" }),
@@ -113,12 +115,13 @@ export function defineCount<Types extends SchemaTypes>(
   modelName: string,
   modelData: ModelData
 ) {
-  const { tableInfo } = modelData;
+  const { operationAliases, tableSingularAlias } = modelData;
   const inputWhere = generator.getInputWhere(modelName);
+  const operationName = operationAliases.count ?? `count${tableSingularAlias}`;
 
   builder.queryType({
     fields: (t) => ({
-      [`count${tableInfo.name}`]: t.field({
+      [operationName]: t.field({
         type: "Int",
         nullable: false,
         args: {
