@@ -1,4 +1,4 @@
-import { and, eq, sql, type Column, type RelationsRecord } from "drizzle-orm";
+import { and, eq, sql, type Column, type RelationsRecord, type SQL } from "drizzle-orm";
 import { getQueryFields, type FieldTree } from "./graphql.js";
 import type { DbClient, ModelData } from "../generator.js";
 import type { ResolvedOperationParams } from "./permissions.js";
@@ -122,7 +122,7 @@ export const replaceColumnValues = (
   tableName: string,
   tree: FieldTree,
   queryData: QueryDataType
-) => {
+): QueryDataType | { columns: Record<string, boolean>; extras: { _: SQL } } => {
   if (Object.keys(tree).every((v) => v === "__typename")) {
     return {
       columns: {},
@@ -148,7 +148,15 @@ export const replaceColumnValues = (
   return queryData;
 };
 
-export const getReturning = (info: GraphQLResolveInfo, columns: Column[], primary?: boolean) => {
+export const getReturning = (
+  info: GraphQLResolveInfo,
+  columns: Column[],
+  primary?: boolean
+): {
+  isRelay: boolean;
+  queryFields: FieldTree;
+  returning: Record<string, Column> | undefined;
+} => {
   const queryFields = getQueryFields(info);
   const isRelay = Object.keys(queryFields).some((v) => !columns.find((c) => c.name === v));
   const returningColumns = columns.filter(

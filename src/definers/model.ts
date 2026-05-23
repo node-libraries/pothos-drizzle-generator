@@ -12,7 +12,7 @@ export function defineModelObject<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableInfo, relations, columns, filterColumns, tableSingularAlias } = modelData;
+  const { relations, columns, filterColumns, tableSingularAlias } = modelData;
 
   const filterRelations = Object.entries(relations).filter(
     ([, relay]) => tables[relay.targetTableName]

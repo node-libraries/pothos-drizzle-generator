@@ -221,12 +221,12 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     const filterTables = include.filter((name) => !exclude.includes(name));
     return Object.fromEntries(tables.filter(([name]) => filterTables.includes(name)));
   }
-  getClient(ctx: object) {
+  getClient(ctx: object): DbClient {
     const options = this.builder.options;
     const drizzleOption = options.drizzle;
     const client =
       drizzleOption.client instanceof Function ? drizzleOption.client(ctx) : drizzleOption.client;
-    return client as typeof client & DbClient;
+    return client as unknown as DbClient;
   }
   getQueryTable(ctx: object, modelName: string) {
     return this.getClient(ctx).query[modelName as never] as RelationalQueryBuilderShim;

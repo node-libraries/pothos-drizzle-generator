@@ -162,7 +162,7 @@ describe("Operation Aliases", () => {
   });
 
   describe("Query Execution with Aliases", () => {
-    const { app, client, db } = createClient({
+    const { client, db } = createClient({
       searchPath: getSearchPath(import.meta.url),
       relations,
       pothosDrizzleGenerator: {
