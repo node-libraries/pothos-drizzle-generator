@@ -12,25 +12,48 @@ type QueryArgs = {
   orderBy?: object[];
 };
 
+export function sanitizeWhere(where: unknown): unknown {
+  if (where == null) return undefined;
+  if (typeof where !== "object") return where;
+  if (Array.isArray(where)) {
+    const arr = where.map(sanitizeWhere).filter((v) => v !== undefined);
+    return arr.length > 0 ? arr : undefined;
+  }
+  const entries = Object.entries(where)
+    .map(([key, val]) => [key, sanitizeWhere(val)] as const)
+    .filter(([, val]) => val !== undefined);
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+export function combineWhere(argsWhere?: unknown, paramsWhere?: unknown): object | undefined {
+  const a = sanitizeWhere(argsWhere);
+  const p = sanitizeWhere(paramsWhere);
+
+  if (a && p) return { AND: [a, p] };
+  return (a ?? p) as object | undefined;
+}
+
 export function prepareQueryOptions(
   args: QueryArgs,
   params: ResolvedOperationParams,
   isMany: boolean
 ) {
-  const where = {
-    AND: [structuredClone(args.where), params.where].filter((v) => v),
-  };
+  const where = combineWhere(args.where, params.where);
 
   const orderBy =
     args.orderBy && Object.keys(args.orderBy).length
       ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
       : params.orderBy;
 
-  const queryOptions: Omit<QueryArgs, "orderBy"> & { where: object; orderBy?: object } = {
+  const queryOptions: Omit<QueryArgs, "orderBy"> & { where?: object; orderBy?: object } = {
     ...args,
-    where,
     orderBy,
   };
+  if (where) {
+    queryOptions.where = where;
+  } else {
+    delete (queryOptions as Record<string, unknown>).where;
+  }
 
   if (isMany) {
     queryOptions.limit =

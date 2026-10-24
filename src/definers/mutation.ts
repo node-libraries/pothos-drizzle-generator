@@ -3,6 +3,7 @@ import { createWhereQuery } from "../libs/drizzle.js";
 import { getQueryFields } from "../libs/graphql.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
 import {
+  combineWhere,
   getReturning,
   insertRelayValue,
   replaceColumnValues,
@@ -185,9 +186,8 @@ export function defineUpdate<Types extends SchemaTypes>(
           if (!isRelay) {
             query({});
           }
-          const whereQuery = createWhereQuery(table, {
-            AND: [structuredClone(args.where), params.where].filter((v) => v),
-          } as never);
+          const where = combineWhere(args.where, params.where);
+          const whereQuery = createWhereQuery(table, where as never);
 
           if (!returning) {
             return client
@@ -247,9 +247,7 @@ export function defineDelete<Types extends SchemaTypes>(
         ) => {
           const params = checkPermissionsAndGetParams(modelName, "delete", ctx, info, modelData);
           const { returning, isRelay } = getReturning(info, columns);
-          const whereCondition = {
-            AND: [structuredClone(args.where), params.where].filter((v) => v),
-          };
+          const whereCondition = combineWhere(args.where, params.where);
 
           if (isRelay) {
             const result = await generator
@@ -259,7 +257,7 @@ export function defineDelete<Types extends SchemaTypes>(
                   tables,
                   modelName,
                   getQueryFields(info),
-                  query({ ...args, where: whereCondition })
+                  query({ ...args, ...(whereCondition ? { where: whereCondition } : {}) })
                 ) as never
               );
             await generator

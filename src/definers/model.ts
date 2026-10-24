@@ -2,6 +2,7 @@ import { and, eq, sql, type AnyRelation, type Table } from "drizzle-orm";
 import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { createWhereQuery, getColumn } from "../libs/drizzle.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
+import { combineWhere } from "../libs/resolver-helpers.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
 
@@ -97,9 +98,7 @@ function createRelationField<Types extends SchemaTypes, Shape>(
             params.limit && args.limit
               ? Math.min(params.limit, args.limit)
               : (params.limit ?? args.limit),
-          where: {
-            AND: [structuredClone(args.where), params.where].filter((v) => v),
-          },
+          ...(combineWhere(args.where, params.where) ? { where: combineWhere(args.where, params.where) } : {}),
           orderBy:
             args.orderBy && Object.keys(args.orderBy).length
               ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
@@ -125,28 +124,28 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
 
   const inputWhere = generator.getInputWhere(targetModelName);
 
-  if (relay.throughTable) {
-    return [
-      `${relayName}Count`,
-      t.field({
-        type: "Int",
-        nullable: false,
-        args: { where: t.arg({ type: inputWhere }) },
-        extensions: {
-          pothosDrizzleSelect: (args: { where?: object }, ctx: object) => {
-            const params = checkPermissionsAndGetParams(
-              targetModelName,
-              operation,
-              ctx,
-              null,
-              tables[targetModelName]!
-            );
+  return [
+    `${relayName}Count`,
+    t.field({
+      type: "Int",
+      nullable: false,
+      args: { where: t.arg({ type: inputWhere }) },
+      extensions: {
+        pothosDrizzleSelect: (args: { where?: object }, ctx: object) => {
+          const params = checkPermissionsAndGetParams(
+            targetModelName,
+            operation,
+            ctx,
+            null,
+            tables[targetModelName]!
+          );
 
-            return {
-              columns: {},
-              extras: {
-                [`${relayName}Count`]: (table: Table) => {
-                  const client = generator.getClient(ctx);
+          return {
+            columns: {},
+            extras: {
+              [`${relayName}Count`]: (table: Table) => {
+                const client = generator.getClient(ctx);
+                if (relay.throughTable) {
                   return client
                     .select({ count: sql`count(*)` })
                     .from(relay.targetTable as never)
@@ -167,36 +166,32 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
                             table[col.name as keyof typeof table]
                           );
                         }),
-                        createWhereQuery(relay.targetTable, {
-                          AND: [structuredClone(args.where), params.where].filter((v) => v),
-                        } as never)
+                        createWhereQuery(relay.targetTable, combineWhere(args.where, params.where) as never)
                       )
                     );
-                },
+                } else {
+                  return client
+                    .select({ count: sql`count(*)` })
+                    .from(relay.targetTable as never)
+                    .where(
+                      and(
+                        ...relay.sourceColumns.map((v, index) => {
+                          const sourceCol = getColumn(v);
+                          const targetCol = getColumn(relay.targetColumns[index]);
+                          return eq(
+                            targetCol,
+                            table[sourceCol.name as keyof typeof table]
+                          );
+                        }),
+                        createWhereQuery(relay.targetTable, combineWhere(args.where, params.where) as never)
+                      )
+                    );
+                }
               },
-            };
-          },
+            },
+          };
         },
-      } as never),
-    ];
-  } else {
-    return [
-      `${relayName}Count`,
-      t.relatedCount(relayName as never, {
-        args: { where: t.arg({ type: inputWhere }) },
-        where: (args: { limit?: number; where?: object }, ctx: object) => {
-          const params = checkPermissionsAndGetParams(
-            targetModelName,
-            operation,
-            ctx,
-            null,
-            tables[targetModelName]!
-          );
-          return createWhereQuery(relay.targetTable, {
-            AND: [structuredClone(args.where), params.where].filter((v) => v),
-          } as never);
-        },
-      } as never),
-    ];
-  }
+      },
+    } as never),
+  ];
 }

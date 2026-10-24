@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { getQueryFields } from "../libs/graphql.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
-import { prepareQueryOptions, replaceColumnValues } from "../libs/resolver-helpers.js";
+import { combineWhere, prepareQueryOptions, replaceColumnValues } from "../libs/resolver-helpers.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { GraphQLResolveInfo } from "graphql";
 
@@ -142,9 +142,7 @@ export function defineCount<Types extends SchemaTypes>(
               columns: {},
               extras: { _count: () => sql`count(*) ` },
               ...args,
-              where: {
-                AND: [structuredClone(args.where), params.where].filter((v) => v),
-              },
+              ...(combineWhere(args.where, params.where) ? { where: combineWhere(args.where, params.where) } : {}),
             } as never)
             .then((v: unknown) => (v as { _count: number })._count);
         },

@@ -1,51 +1,240 @@
 {
-  "version": "8",
+  "type": "base",
+  "version": "9",
   "dialect": "postgres",
   "id": "7e9cbd4b-4a3c-4dea-99c8-04d76dd6e027",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "Role"
+      ],
+      "writes": [
+        "s|enum|public.Role",
+        "n|enum|public.Role",
+        "e|enum|public.Role",
+        "n|type|public.Role"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "Category"
+      ],
+      "writes": [
+        "s|tbl|public.Category",
+        "n|tbl|public.Category",
+        "e|tbl|public.Category",
+        "n|rel|public.Category",
+        "n|type|public.Category",
+        "n|rel|public.Category_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "Post"
+      ],
+      "writes": [
+        "s|tbl|public.Post",
+        "n|tbl|public.Post",
+        "e|tbl|public.Post",
+        "n|rel|public.Post",
+        "n|type|public.Post",
+        "n|rel|public.Post_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "PostToCategory"
+      ],
+      "writes": [
+        "s|tbl|public.PostToCategory",
+        "n|tbl|public.PostToCategory",
+        "e|tbl|public.PostToCategory",
+        "n|rel|public.PostToCategory",
+        "n|type|public.PostToCategory",
+        "n|rel|public.PostToCategory_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "Test"
+      ],
+      "writes": [
+        "s|tbl|public.Test",
+        "n|tbl|public.Test",
+        "e|tbl|public.Test",
+        "n|rel|public.Test",
+        "n|type|public.Test"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.Role"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "User"
+      ],
+      "writes": [
+        "s|tbl|public.User",
+        "n|tbl|public.User",
+        "e|tbl|public.User",
+        "n|rel|public.User",
+        "n|type|public.User",
+        "n|rel|public.User_pkey",
+        "n|rel|public.User_email_key"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.Role"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "Post"
+      ],
+      "writes": [
+        "s|fk|public.Post.Post_authorId_User_id_fkey",
+        "n|fk|public.Post.Post_authorId_User_id_fkey",
+        "e|fk|public.Post.Post_authorId_User_id_fkey",
+        "n|con|public.Post.Post_authorId_User_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.Post",
+        "n|sch|public",
+        "n|tbl|public.User",
+        "n|sch|public",
+        "n|col|public.Post.authorId",
+        "n|col|public.User.id",
+        "e|uniqueness|public.User.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "PostToCategory"
+      ],
+      "writes": [
+        "s|fk|public.PostToCategory.PostToCategory_postId_Post_id_fkey",
+        "n|fk|public.PostToCategory.PostToCategory_postId_Post_id_fkey",
+        "e|fk|public.PostToCategory.PostToCategory_postId_Post_id_fkey",
+        "n|con|public.PostToCategory.PostToCategory_postId_Post_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.PostToCategory",
+        "n|sch|public",
+        "n|tbl|public.Post",
+        "n|sch|public",
+        "n|col|public.PostToCategory.postId",
+        "n|col|public.Post.id",
+        "e|uniqueness|public.Post.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "PostToCategory"
+      ],
+      "writes": [
+        "s|fk|public.PostToCategory.PostToCategory_categoryId_Category_id_fkey",
+        "n|fk|public.PostToCategory.PostToCategory_categoryId_Category_id_fkey",
+        "e|fk|public.PostToCategory.PostToCategory_categoryId_Category_id_fkey",
+        "n|con|public.PostToCategory.PostToCategory_categoryId_Category_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.PostToCategory",
+        "n|sch|public",
+        "n|tbl|public.Category",
+        "n|sch|public",
+        "n|col|public.PostToCategory.categoryId",
+        "n|col|public.Category.id",
+        "e|uniqueness|public.Category.id"
+      ]
+    }
+  ],
   "ddl": [
     {
+      "schema": "public",
+      "name": "Category",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "Post",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "PostToCategory",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "Test",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "User",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "Role",
       "values": [
         "ADMIN",
         "USER"
       ],
-      "name": "Role",
-      "entityType": "enums",
-      "schema": "public"
+      "entityType": "enums"
     },
     {
-      "isRlsEnabled": false,
-      "name": "Category",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "Post",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "PostToCategory",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "Test",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "User",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
+      "schema": "public",
+      "table": "Category",
+      "name": "id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -53,12 +242,12 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Category"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Category",
+      "name": "name",
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -66,25 +255,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Category"
+      "entityType": "columns"
     },
     {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Category",
       "name": "createdAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Category"
-    },
-    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -92,12 +268,25 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "updatedAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Category"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Category",
+      "name": "updatedAt",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Post",
+      "name": "id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -105,12 +294,12 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Post",
+      "name": "published",
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -118,12 +307,12 @@
       "default": "false",
       "generated": null,
       "identity": null,
-      "name": "published",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Post",
+      "name": "title",
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -131,12 +320,12 @@
       "default": "'New Post'",
       "generated": null,
       "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Post",
+      "name": "content",
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -144,38 +333,25 @@
       "default": "''",
       "generated": null,
       "identity": null,
-      "name": "content",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
+      "entityType": "columns"
     },
     {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Post",
       "name": "authorId",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
-    },
-    {
-      "type": "timestamp with time zone",
+      "type": "uuid",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
-      "default": "now()",
+      "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Post",
       "name": "createdAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
-    },
-    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -183,12 +359,12 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Post",
       "name": "updatedAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
-    },
-    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -196,25 +372,25 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Post",
       "name": "publishedAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Post"
-    },
-    {
-      "type": "uuid",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "PostToCategory",
       "name": "postId",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "PostToCategory"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -222,25 +398,38 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "PostToCategory",
       "name": "categoryId",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "PostToCategory"
-    },
-    {
-      "type": "integer",
+      "type": "uuid",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "integer",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "integerArray",
       "type": "integer",
       "typeSchema": null,
       "notNull": false,
@@ -248,12 +437,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "integerArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "real",
       "type": "real",
       "typeSchema": null,
       "notNull": false,
@@ -261,12 +450,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "real",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "realArray",
       "type": "real",
       "typeSchema": null,
       "notNull": false,
@@ -274,12 +463,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "realArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "smallint",
       "type": "smallint",
       "typeSchema": null,
       "notNull": false,
@@ -287,12 +476,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "smallint",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "enum",
       "type": "Role",
       "typeSchema": "public",
       "notNull": false,
@@ -300,25 +489,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "enum",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
-      "type": "bigint",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Test",
       "name": "bigint",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "bigint",
       "typeSchema": null,
       "notNull": false,
@@ -326,12 +502,12 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "bigintNumber",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "bigint",
       "typeSchema": null,
       "notNull": false,
@@ -339,12 +515,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "bigintString",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "bigintString",
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
+      "name": "bigintArray",
       "type": "bigint",
       "typeSchema": null,
       "notNull": false,
@@ -352,12 +541,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "bigintArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "serial",
       "type": "serial",
       "typeSchema": null,
       "notNull": true,
@@ -365,12 +554,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "serial",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "smallserial",
       "type": "smallserial",
       "typeSchema": null,
       "notNull": true,
@@ -378,25 +567,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "smallserial",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
-      "type": "bigserial",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Test",
       "name": "bigserial",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "bigserial",
       "typeSchema": null,
       "notNull": true,
@@ -404,25 +580,38 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "bigserialNumber",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
-      "type": "boolean",
+      "type": "bigserial",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "boolean",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "booleanArray",
       "type": "boolean",
       "typeSchema": null,
       "notNull": false,
@@ -430,25 +619,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "booleanArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
-      "type": "bytea",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Test",
       "name": "bytea",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "byteaArray",
       "type": "bytea",
       "typeSchema": null,
       "notNull": false,
@@ -456,12 +645,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "byteaArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "text",
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -469,12 +658,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "text",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "textArray",
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -482,12 +671,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "textArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "varchar",
       "type": "varchar",
       "typeSchema": null,
       "notNull": false,
@@ -495,12 +684,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "varchar",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "char",
       "type": "char(16)",
       "typeSchema": null,
       "notNull": false,
@@ -508,25 +697,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "char",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Test",
       "name": "numeric",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -534,12 +710,12 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "numericNumber",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -547,12 +723,12 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "numericString",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -560,12 +736,12 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "decimal",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -573,12 +749,12 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "decimalNumber",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -586,12 +762,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "decimalString",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "decimalString",
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
+      "name": "doublePrecision",
       "type": "double precision",
       "typeSchema": null,
       "notNull": false,
@@ -599,12 +788,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "doublePrecision",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "json",
       "type": "json",
       "typeSchema": null,
       "notNull": false,
@@ -612,12 +801,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "json",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "jsonb",
       "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
@@ -625,12 +814,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "jsonb",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "jsonbArray",
       "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
@@ -638,12 +827,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "jsonbArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "uuid",
       "type": "uuid",
       "typeSchema": null,
       "notNull": false,
@@ -651,12 +840,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "uuid",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "time",
       "type": "time",
       "typeSchema": null,
       "notNull": false,
@@ -664,12 +853,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "time",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "timestamp",
       "type": "timestamp",
       "typeSchema": null,
       "notNull": false,
@@ -677,12 +866,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "timestamp",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "timestampArray",
       "type": "timestamp",
       "typeSchema": null,
       "notNull": false,
@@ -690,12 +879,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "timestampArray",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "date",
       "type": "date",
       "typeSchema": null,
       "notNull": false,
@@ -703,12 +892,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "date",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "interval",
       "type": "interval",
       "typeSchema": null,
       "notNull": false,
@@ -716,25 +905,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "interval",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
-      "type": "point",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "Test",
       "name": "point",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "point",
       "typeSchema": null,
       "notNull": false,
@@ -742,25 +918,25 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "pointTuple",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
-      "type": "line",
+      "type": "point",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Test",
       "name": "line",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
-    },
-    {
       "type": "line",
       "typeSchema": null,
       "notNull": false,
@@ -768,12 +944,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "lineTuple",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "Test"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "Test",
+      "name": "lineTuple",
+      "type": "line",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "User",
+      "name": "id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -781,12 +970,12 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "User",
+      "name": "email",
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -794,12 +983,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "email",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "User",
+      "name": "name",
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -807,12 +996,12 @@
       "default": "'User'",
       "generated": null,
       "identity": null,
-      "name": "name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "User",
+      "name": "roles",
       "type": "Role",
       "typeSchema": "public",
       "notNull": true,
@@ -820,25 +1009,12 @@
       "default": "'{USER}'",
       "generated": null,
       "identity": null,
-      "name": "roles",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
+      "entityType": "columns"
     },
     {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "table": "User",
       "name": "createdAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
-    },
-    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -846,12 +1022,25 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "updatedAt",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "User"
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "User",
+      "name": "updatedAt",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "Post",
+      "name": "Post_authorId_User_id_fkey",
       "nameExplicit": false,
       "columns": [
         "authorId"
@@ -863,12 +1052,12 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "Post_authorId_User_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "Post"
+      "entityType": "fks"
     },
     {
+      "schema": "public",
+      "table": "PostToCategory",
+      "name": "PostToCategory_postId_Post_id_fkey",
       "nameExplicit": false,
       "columns": [
         "postId"
@@ -880,12 +1069,12 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "PostToCategory_postId_Post_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "PostToCategory"
+      "entityType": "fks"
     },
     {
+      "schema": "public",
+      "table": "PostToCategory",
+      "name": "PostToCategory_categoryId_Category_id_fkey",
       "nameExplicit": false,
       "columns": [
         "categoryId"
@@ -897,63 +1086,59 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "PostToCategory_categoryId_Category_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "PostToCategory"
+      "entityType": "fks"
     },
     {
+      "schema": "public",
+      "table": "PostToCategory",
+      "name": "PostToCategory_pkey",
       "columns": [
         "postId",
         "categoryId"
       ],
       "nameExplicit": false,
-      "name": "PostToCategory_pkey",
-      "entityType": "pks",
-      "schema": "public",
-      "table": "PostToCategory"
+      "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "Category_pkey",
       "schema": "public",
       "table": "Category",
-      "entityType": "pks"
-    },
-    {
+      "name": "Category_pkey",
       "columns": [
         "id"
       ],
       "nameExplicit": false,
-      "name": "Post_pkey",
+      "entityType": "pks"
+    },
+    {
       "schema": "public",
       "table": "Post",
-      "entityType": "pks"
-    },
-    {
+      "name": "Post_pkey",
       "columns": [
         "id"
       ],
       "nameExplicit": false,
-      "name": "User_pkey",
-      "schema": "public",
-      "table": "User",
       "entityType": "pks"
     },
     {
+      "schema": "public",
+      "table": "User",
+      "name": "User_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "User",
+      "name": "User_email_key",
       "nameExplicit": false,
       "columns": [
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "User_email_key",
-      "schema": "public",
-      "table": "User",
       "entityType": "uniques"
     }
-  ],
-  "renames": []
+  ]
 }
