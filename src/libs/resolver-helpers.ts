@@ -1,4 +1,5 @@
 import { and, eq, sql, type Column, type RelationsRecord, type SQL } from "drizzle-orm";
+import { getColumn } from "./drizzle.js";
 import { getQueryFields, type FieldTree } from "./graphql.js";
 import type { DbClient, ModelData } from "../generator.js";
 import type { ResolvedOperationParams } from "./permissions.js";
@@ -81,15 +82,16 @@ export async function insertRelayValue({
       const { throughTable } = relay;
 
       const sourceToThroughMap = Object.fromEntries(
-        relay.sourceColumns.map((v, i) => [v.name, relay.through!.source[i]!._.key])
+        relay.sourceColumns.map((v, i) => [getColumn(v).name, relay.through!.source[i]!._.key])
       );
       const targetToThroughMap = Object.fromEntries(
-        relay.targetColumns.map((v, i) => [v.name, relay.through!.target[i]!._.key])
+        relay.targetColumns.map((v, i) => [getColumn(v).name, relay.through!.target[i]!._.key])
       );
 
-      const sourceFilters = relay.sourceColumns.map(
-        (v) => [sourceToThroughMap[v.name], result[v.name]] as const
-      );
+      const sourceFilters = relay.sourceColumns.map((v) => {
+        const col = getColumn(v);
+        return [sourceToThroughMap[col.name], result[col.name]] as const;
+      });
       await client
         .delete(throughTable as never)
         .where(

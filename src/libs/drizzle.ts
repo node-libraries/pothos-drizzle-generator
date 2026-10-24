@@ -30,6 +30,10 @@ type OperatorTree =
   | { NOT?: OperatorTree }
   | OperatorType;
 
+export const getColumn = (col: unknown): p.Column => {
+  return ((col as { _?: { column?: p.Column } })._?.column ?? col) as p.Column;
+};
+
 export const createWhereQuery = (table: p.SchemaEntry, tree?: OperatorTree): p.SQL | undefined => {
   if (!tree) return undefined;
   const result: p.SQL[] = Object.entries(tree)

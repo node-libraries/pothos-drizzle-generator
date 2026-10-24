@@ -1,6 +1,6 @@
 import { and, eq, sql, type AnyRelation, type Table } from "drizzle-orm";
 import { type ModelData, DrizzleGenerator } from "../generator.js";
-import { createWhereQuery } from "../libs/drizzle.js";
+import { createWhereQuery, getColumn } from "../libs/drizzle.js";
 import { checkPermissionsAndGetParams } from "../libs/permissions.js";
 import type { SchemaTypes } from "@pothos/core";
 import type { DrizzleObjectFieldBuilder } from "@pothos/plugin-drizzle";
@@ -23,12 +23,14 @@ export function defineModelObject<Types extends SchemaTypes>(
     fields: (t) => {
       const relayList = filterRelations
         .filter(([name]) => filterColumns.includes(name))
-        .map(([relayName, relay]) => createRelationField(t, generator, relayName, relay, tables));
+        .map(([relayName, relay]) =>
+          createRelationField(t as never, generator, relayName, relay, tables)
+        );
 
       const relayCount = filterRelations
         .filter(([name]) => filterColumns.includes(`${name}Count`))
         .map(([relayName, relay]) =>
-          createRelationCountField(t, generator, relayName, relay, tables)
+          createRelationCountField(t as never, generator, relayName, relay, tables)
         );
       const columnList = columns
         .filter(({ name }) => filterColumns.includes(name))
@@ -152,18 +154,19 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
                       relay.throughTable as never,
                       and(
                         ...relay.targetColumns.map((v, index) =>
-                          eq(relay.through!.target[index]!._.column, v)
+                          eq(relay.through!.target[index]!._.column, getColumn(v))
                         )
                       )
                     )
                     .where(
                       and(
-                        ...relay.sourceColumns.map((v, index) =>
-                          eq(
+                        ...relay.sourceColumns.map((v, index) => {
+                          const col = getColumn(v);
+                          return eq(
                             relay.through!.source[index]!._.column,
-                            table[v.name as keyof typeof table]
-                          )
-                        ),
+                            table[col.name as keyof typeof table]
+                          );
+                        }),
                         createWhereQuery(relay.targetTable, {
                           AND: [structuredClone(args.where), params.where].filter((v) => v),
                         } as never)
@@ -179,7 +182,7 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
   } else {
     return [
       `${relayName}Count`,
-      t.relatedCount(relayName, {
+      t.relatedCount(relayName as never, {
         args: { where: t.arg({ type: inputWhere }) },
         where: (args: { limit?: number; where?: object }, ctx: object) => {
           const params = checkPermissionsAndGetParams(

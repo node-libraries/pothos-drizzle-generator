@@ -12,6 +12,7 @@ import {
   DateTimeResolver,
   JSONResolver,
 } from "graphql-scalars";
+import { getColumn } from "./libs/drizzle.js";
 import { expandOperations, OperationBasic } from "./libs/operations.js";
 import { createInputOperator } from "./libs/pothos.js";
 import type { SchemaTypes } from "@pothos/core";
@@ -269,13 +270,16 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         const rowInputType = this.getInputType(modelName, `_${relationName}Set`, {
           fields: (t) =>
             Object.fromEntries(
-              relation.targetColumns.map((col) => [
-                col.name,
-                t.field({
-                  type: this.getDataType(col),
-                  required: col.notNull && !col.hasDefault,
-                }),
-              ])
+              relation.targetColumns.map((c) => {
+                const col = getColumn(c);
+                return [
+                  col.name,
+                  t.field({
+                    type: this.getDataType(col),
+                    required: col.notNull && !col.hasDefault,
+                  }),
+                ];
+              })
             ),
         });
         const relationInputType = this.getInputType(modelName, `_${relationName}`, {

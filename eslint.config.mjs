@@ -1,8 +1,23 @@
+import Module from "node:module";
+
+const origLoad = Module._load;
+Module._load = function (req, ...args) {
+  if (req === "typescript") {
+    try {
+      return origLoad.call(this, "@typescript/typescript6", ...args);
+    } catch {
+      // fallback
+    }
+  }
+  return origLoad.call(this, req, ...args);
+};
+
 import eslint from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
-import importPlugin from "eslint-plugin-import";
+import importPlugin from "eslint-plugin-import-x";
 import prettierPlugin from "eslint-plugin-prettier";
-import tslint from "typescript-eslint";
+
+const tslint = (await import("typescript-eslint")).default;
 
 export default [
   eslint.configs.recommended,
