@@ -98,7 +98,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
       - name: Cache node modules
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -106,3 +106,90 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Test
         run: npm run test:actions
+
+  Release:
+    name: Release
+    needs: [Lint, Build, BackendTest]
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Read package.json
+        id: pkg
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Check version and git tag
+        id: check
+        run: |
+          TAG="${{ steps.pkg.outputs.tag }}"
+          PACKAGE="${{ steps.pkg.outputs.name }}@${{ steps.pkg.outputs.version }}"
+
+          echo "Checking if $PACKAGE is published or tag $TAG exists..."
+
+          TAG_EXISTS=false
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null 2>&1; then
+            TAG_EXISTS=true
+          fi
+
+          NPM_EXISTS=false
+          if npm view "$PACKAGE" version > /dev/null 2>&1; then
+            NPM_EXISTS=true
+          fi
+
+          if [ "$TAG_EXISTS" = "true" ] || [ "$NPM_EXISTS" = "true" ]; then
+            echo "Version ${{ steps.pkg.outputs.version }} is already released (Tag exists: $TAG_EXISTS, npm published: $NPM_EXISTS). Skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New version ${{ steps.pkg.outputs.version }} detected. Proceeding with release."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pnpm
+        if: steps.check.outputs.should_release == 'true'
+        run: npm -g install pnpm
+
+      - name: Cache node modules
+        if: steps.check.outputs.should_release == 'true'
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        if: steps.check.outputs.should_release == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Run build
+        if: steps.check.outputs.should_release == 'true'
+        run: npm run build
+
+      - name: Create and push git tag
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.pkg.outputs.tag }}"
+          git push origin "${{ steps.pkg.outputs.tag }}"
+
+      - name: Publish to npm (OIDC / Trusted Publishing)
+        if: steps.check.outputs.should_release == 'true'
+        run: npm publish --provenance --access public

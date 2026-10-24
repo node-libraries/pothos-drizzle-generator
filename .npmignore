@@ -9,8 +9,7 @@ tsconfig.json
 tsconfig.esm.json
 eslint.config.mjs
 .prettierrc
-.env.test
+.env*
 /esm
 /documents
-/test
 vitest.config.ts
