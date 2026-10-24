@@ -248,5 +248,55 @@ describe("GraphQL Schema Generation", () => {
       expect(Object.keys(postModel!.getFields())).toContain("title");
       expect(Object.keys(userModel!.getFields())).not.toContain("name");
     });
+
+    it("should exclude excluded fields from Where and OrderBy input types", () => {
+      const { schema } = createApp({
+        searchPath: getSearchPath(import.meta.url),
+        relations,
+        pothosDrizzleGenerator: {
+          models: {
+            posts: {
+              fields: () => ({
+                exclude: ["content", "author"],
+              }),
+            },
+          },
+        },
+      });
+      const whereType = schema.getType("PostWhere") as { getFields: () => Record<string, unknown> };
+      const orderByType = schema.getType("PostOrderBy") as { getFields: () => Record<string, unknown> };
+
+      const whereFields = Object.keys(whereType.getFields());
+      const orderByFields = Object.keys(orderByType.getFields());
+
+      expect(whereFields).not.toContain("content");
+      expect(whereFields).not.toContain("author");
+      expect(whereFields).toContain("title");
+
+      expect(orderByFields).not.toContain("content");
+      expect(orderByFields).toContain("title");
+    });
+
+    it("should exclude relations from input types when excluded in inputFields", () => {
+      const { schema } = createApp({
+        searchPath: getSearchPath(import.meta.url),
+        relations,
+        pothosDrizzleGenerator: {
+          models: {
+            posts: {
+              inputFields: () => ({
+                exclude: ["categories"],
+              }),
+            },
+          },
+        },
+      });
+      const createType = schema.getType("PostCreate") as { getFields: () => Record<string, unknown> };
+      const updateType = schema.getType("PostUpdate") as { getFields: () => Record<string, unknown> };
+
+      expect(Object.keys(createType.getFields())).not.toContain("categories");
+      expect(Object.keys(updateType.getFields())).not.toContain("categories");
+      expect(Object.keys(createType.getFields())).toContain("title");
+    });
   });
 });

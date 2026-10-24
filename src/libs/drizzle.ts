@@ -36,6 +36,7 @@ export const getColumn = (col: unknown): p.Column => {
 
 export const createWhereQuery = (table: p.SchemaEntry, tree?: OperatorTree): p.SQL | undefined => {
   if (!tree) return undefined;
+  const tableColumns = p.getColumns(table);
   const result: p.SQL[] = Object.entries(tree)
     .map(([key, value]) => {
       switch (key) {
@@ -52,22 +53,33 @@ export const createWhereQuery = (table: p.SchemaEntry, tree?: OperatorTree): p.S
           return v ? p.not(v) : undefined;
         }
       }
+      const column = tableColumns[key];
+      if (!column) return undefined;
+
       const result =
-        typeof value === "object"
+        typeof value === "object" && value !== null
           ? Object.entries(value).map(([k, v]) => {
+              if (k === "isNull") {
+                return v ? p.isNull(column) : p.isNotNull(column);
+              }
+              if (k === "isNotNull") {
+                return v ? p.isNotNull(column) : p.isNull(column);
+              }
               const op = OperatorMap[k as keyof typeof OperatorMap];
-              return (op as (column: p.SQL | p.Column, value: unknown) => p.SQL)(
-                p.getColumns(table)[key],
-                v
-              ) as p.SQL;
-            })
-          : [p.eq(p.getColumns(table)[key], value)];
+              if (!op) return undefined;
+              return (op as (col: p.SQL | p.Column, val: unknown) => p.SQL)(column, v);
+            }).filter((sql): sql is p.SQL => sql !== undefined)
+          : [p.eq(column, value)];
       if (result.length === 1) {
-        return result[0] as p.SQL;
+        return result[0];
       }
-      return p.and(...result);
+      if (result.length > 1) {
+        return p.and(...result);
+      }
+      return undefined;
     })
     .flatMap((v) => (v ? [v] : []));
   if (result.length === 1) return result[0] as p.SQL;
-  return p.and(...result);
+  if (result.length > 1) return p.and(...result);
+  return undefined;
 };

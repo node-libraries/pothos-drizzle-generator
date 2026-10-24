@@ -59,5 +59,20 @@ describe("libs/drizzle", () => {
       });
       expect(result).toBeDefined();
     });
+
+    it("should handle isNull and isNotNull boolean values correctly", () => {
+      expect(createWhereQuery(posts, { title: { isNull: true } })).toBeDefined();
+      expect(createWhereQuery(posts, { title: { isNull: false } })).toBeDefined();
+      expect(createWhereQuery(posts, { title: { isNotNull: true } })).toBeDefined();
+      expect(createWhereQuery(posts, { title: { isNotNull: false } })).toBeDefined();
+    });
+
+    it("should safely ignore nonexistent columns or relation names", () => {
+      const result = createWhereQuery(posts, {
+        nonExistentColumn: { eq: "value" },
+        author: { name: { eq: "John" } },
+      } as never);
+      expect(result).toBeUndefined();
+    });
   });
 });

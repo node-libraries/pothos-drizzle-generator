@@ -265,4 +265,49 @@ describe("Authentication and Authorization Tests", () => {
     const result = await client.query(deepQuery, {});
     expect(result.error?.message).toContain("Depth limit exceeded");
   });
+
+  it("should enforce query depth limit with FragmentSpread", async () => {
+    const deepFragmentQuery = gql`
+      fragment DeepPosts on Post {
+        author {
+          posts {
+            author {
+              posts {
+                id
+              }
+            }
+          }
+        }
+      }
+      query {
+        findManyPost {
+          ...DeepPosts
+        }
+      }
+    `;
+    const result = await client.query(deepFragmentQuery, {});
+    expect(result.error?.message).toContain("Depth limit exceeded");
+  });
+
+  it("should enforce query depth limit with InlineFragment", async () => {
+    const deepInlineQuery = gql`
+      query {
+        findManyPost {
+          ... on Post {
+            author {
+              posts {
+                author {
+                  posts {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    const result = await client.query(deepInlineQuery, {});
+    expect(result.error?.message).toContain("Depth limit exceeded");
+  });
 });

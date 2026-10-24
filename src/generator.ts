@@ -78,6 +78,7 @@ export type ModelData = {
   tablePluralAlias: string;
   operationAliases: { [key in (typeof OperationBasic)[number]]?: string };
   filterColumns: string[];
+  filterInputColumns: string[];
   columns: Column[];
   primaryColumns: Column[];
   inputColumns: Column[];
@@ -189,8 +190,11 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         const inputFieldValue = (modelOptions?.inputFields ?? allOptions?.inputFields)?.({
           modelName,
         });
-        const includeInput = inputFieldValue?.include ?? columns.map((c) => c.name);
-        const excludeInput = inputFieldValue?.exclude ?? [];
+        const includeInput = (inputFieldValue?.include as undefined | string[]) ?? [
+          ...columns.map((c) => c.name),
+          ...Object.keys(relations),
+        ];
+        const excludeInput = (inputFieldValue?.exclude as undefined | string[]) ?? [];
         const filterInputColumns = includeInput.filter((name) => !excludeInput.includes(name));
         return [
           modelName,
@@ -199,6 +203,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
             relations,
             columns,
             filterColumns,
+            filterInputColumns,
             primaryColumns,
             operations,
             operationAliases: operationAliasValue,
@@ -262,10 +267,16 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     return input;
   }
   getInputRelation(modelName: string) {
-    const { relations } = this.getTables()[modelName]!;
+    const { relations, filterInputColumns } = this.getTables()[modelName]!;
+    const tables = this.getTables();
 
     const relayFields = Object.entries(relations)
-      .filter(([, relation]) => relation.through)
+      .filter(([relationName, relation]) => {
+        if (!relation.through) return false;
+        if (!filterInputColumns.includes(relationName)) return false;
+        if (!tables[relation.targetTableName]) return false;
+        return true;
+      })
       .map(([relationName, relation]) => {
         const rowInputType = this.getInputType(modelName, `_${relationName}Set`, {
           fields: (t) =>
@@ -333,50 +344,57 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
     });
   }
   getInputWhere(modelName: string) {
-    const { tableInfo, relations } = this.getTables()[modelName]!;
+    const { tableInfo, relations, filterColumns } = this.getTables()[modelName]!;
+    const tables = this.getTables();
     const inputWhere = this.getInputType(modelName, "Where", {
       fields: (t) => {
         return Object.fromEntries([
           ["AND", t.field({ type: [inputWhere] })],
           ["OR", t.field({ type: [inputWhere] })],
           ["NOT", t.field({ type: inputWhere })],
-          ...tableInfo.columns.map((c: Column) => {
-            return [
-              c.name,
-              t.field({
-                type: this.getInputOperator(this.getDataType(c)),
-              }),
-            ];
-          }),
-          ...Object.entries(relations).map(([key, relay]) => {
-            const table = this.getTable(relay.targetTable);
-            if (!table) return [];
-            const { tableSingularAlias } = table;
-            return [
-              key,
-              t.field({
-                type: `${tableSingularAlias}Where`,
-              }),
-            ];
-          }),
+          ...tableInfo.columns
+            .filter((c: Column) => filterColumns.includes(c.name))
+            .map((c: Column) => {
+              return [
+                c.name,
+                t.field({
+                  type: this.getInputOperator(this.getDataType(c)),
+                }),
+              ];
+            }),
+          ...Object.entries(relations)
+            .filter(([key, relay]) => filterColumns.includes(key) && tables[relay.targetTableName])
+            .map(([key, relay]) => {
+              const table = this.getTable(relay.targetTable);
+              if (!table) return [];
+              const { tableSingularAlias } = table;
+              return [
+                key,
+                t.field({
+                  type: `${tableSingularAlias}Where`,
+                }),
+              ];
+            }),
         ]);
       },
     });
     return inputWhere;
   }
   getInputOrderBy(modelName: string) {
-    const { tableInfo } = this.getTables()[modelName]!;
+    const { tableInfo, filterColumns } = this.getTables()[modelName]!;
     const inputWhere = this.getInputType(modelName, "OrderBy", {
       fields: (t) => {
         return Object.fromEntries(
-          tableInfo.columns.map((c: Column) => {
-            return [
-              c.name,
-              t.field({
-                type: this.enums["OrderBy"]!,
-              }),
-            ];
-          })
+          tableInfo.columns
+            .filter((c: Column) => filterColumns.includes(c.name))
+            .map((c: Column) => {
+              return [
+                c.name,
+                t.field({
+                  type: this.enums["OrderBy"]!,
+                }),
+              ];
+            })
         );
       },
     });

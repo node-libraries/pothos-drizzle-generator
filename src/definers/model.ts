@@ -91,19 +91,31 @@ function createRelationField<Types extends SchemaTypes, Shape>(
           tables[targetModelName]!
         );
 
-        return {
+        const where = combineWhere(args.where, params.where);
+        const requestedLimit = args.limit != null ? Math.max(0, args.limit) : undefined;
+        const limit =
+          params.limit != null && requestedLimit != null
+            ? Math.min(params.limit, requestedLimit)
+            : (params.limit ?? requestedLimit);
+        const offset = args.offset != null ? Math.max(0, args.offset) : undefined;
+
+        const queryOptions: Record<string, unknown> = {
           ...args,
           _name: targetModelName,
-          limit:
-            params.limit && args.limit
-              ? Math.min(params.limit, args.limit)
-              : (params.limit ?? args.limit),
-          ...(combineWhere(args.where, params.where) ? { where: combineWhere(args.where, params.where) } : {}),
+          limit,
+          offset,
           orderBy:
             args.orderBy && Object.keys(args.orderBy).length
               ? Object.fromEntries(args.orderBy.flatMap((v) => Object.entries(v)))
               : params.orderBy,
         };
+        if (where) {
+          queryOptions.where = where;
+        } else {
+          delete queryOptions.where;
+        }
+
+        return queryOptions;
       },
     } as never),
   ];

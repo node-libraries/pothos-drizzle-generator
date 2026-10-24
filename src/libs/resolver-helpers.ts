@@ -55,11 +55,18 @@ export function prepareQueryOptions(
     delete (queryOptions as Record<string, unknown>).where;
   }
 
+  if (args.offset != null) {
+    queryOptions.offset = Math.max(0, args.offset);
+  }
+
   if (isMany) {
+    const requestedLimit = args.limit != null ? Math.max(0, args.limit) : undefined;
     queryOptions.limit =
-      params.limit != null && args.limit != null
-        ? Math.min(params.limit, args.limit)
-        : (params.limit ?? args.limit);
+      params.limit != null && requestedLimit != null
+        ? Math.min(params.limit, requestedLimit)
+        : (params.limit ?? requestedLimit);
+  } else if (args.limit != null) {
+    queryOptions.limit = Math.max(0, args.limit);
   }
 
   return queryOptions;

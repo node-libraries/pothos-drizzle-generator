@@ -130,20 +130,29 @@ export function defineCount<Types extends SchemaTypes>(
         },
         resolve: async (
           _parent: unknown,
-          args: { where?: object },
+          args: { where?: object; limit?: number },
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
           const params = checkPermissionsAndGetParams(modelName, "count", ctx, info, modelData);
+          const where = combineWhere(args.where, params.where);
+          const queryOptions: Record<string, unknown> = {
+            columns: {},
+            extras: { _count: () => sql`count(*) ` },
+            ...args,
+          };
+          if (args.limit != null) {
+            queryOptions.limit = Math.max(0, args.limit);
+          }
+          if (where) {
+            queryOptions.where = where;
+          } else {
+            delete queryOptions.where;
+          }
 
           return generator
             .getQueryTable(ctx, modelName)
-            .findFirst({
-              columns: {},
-              extras: { _count: () => sql`count(*) ` },
-              ...args,
-              ...(combineWhere(args.where, params.where) ? { where: combineWhere(args.where, params.where) } : {}),
-            } as never)
+            .findFirst(queryOptions as never)
             .then((v: unknown) => (v as { _count: number })._count);
         },
       } as never),

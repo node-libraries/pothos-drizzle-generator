@@ -245,6 +245,7 @@ export function defineDelete<Types extends SchemaTypes>(
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
+          const client = generator.getClient(ctx);
           const params = checkPermissionsAndGetParams(modelName, "delete", ctx, info, modelData);
           const { returning, isRelay } = getReturning(info, columns);
           const whereCondition = combineWhere(args.where, params.where);
@@ -271,13 +272,11 @@ export function defineDelete<Types extends SchemaTypes>(
           const whereQuery = createWhereQuery(table, whereCondition as never);
 
           return returning
-            ? generator
-                .getClient(ctx)
+            ? client
                 .delete(table as never)
                 .where(whereQuery)
                 .returning(returning)
-            : generator
-                .getClient(ctx)
+            : client
                 .delete(table as never)
                 .where(whereQuery)
                 .then((v) => Array("rowCount" in v ? v.rowCount : v.rowsAffected).fill({}));
