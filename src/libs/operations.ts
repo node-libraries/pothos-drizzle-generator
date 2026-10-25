@@ -16,6 +16,11 @@ export const OperationQuery = ops(...OperationFind, "count");
 export const OperationCreate = ops("createOne", "createMany");
 
 /**
+ * Operations related to upserting records.
+ */
+export const OperationUpsert = ops("upsertOne");
+
+/**
  * Operations related to updating records.
  */
 export const OperationUpdate = ops("update");
@@ -26,9 +31,14 @@ export const OperationUpdate = ops("update");
 export const OperationDelete = ops("delete");
 
 /**
- * All mutation operations (create, update, delete).
+ * All mutation operations (create, update, delete, upsert).
  */
-export const OperationMutation = ops(...OperationCreate, ...OperationUpdate, ...OperationDelete);
+export const OperationMutation = ops(
+  ...OperationCreate,
+  ...OperationUpdate,
+  ...OperationDelete,
+  ...OperationUpsert
+);
 
 /**
  * Basic operations supported by the generator (query and mutation).
@@ -38,7 +48,16 @@ export const OperationBasic = ops(...OperationQuery, ...OperationMutation);
 /**
  * All available operations, including categories and basic operations.
  */
-export const OperationAll = ops("find", "update", "delete", "query", "mutation", ...OperationBasic);
+export const OperationAll = ops(
+  "find",
+  "create",
+  "upsert",
+  "update",
+  "delete",
+  "query",
+  "mutation",
+  ...OperationBasic
+);
 
 /**
  * Type representing a single operation or an operation category like "all".
@@ -57,15 +76,19 @@ export const expandOperations = (operations: Operation[]) => {
       ? OperationBasic
       : v === "find"
         ? OperationFind
-        : v === "update"
-          ? OperationUpdate
-          : v === "delete"
-            ? OperationDelete
-            : v === "query"
-              ? OperationQuery
-              : v === "mutation"
-                ? OperationMutation
-                : [v]
+        : v === "create"
+          ? OperationCreate
+          : v === "upsert"
+            ? OperationUpsert
+            : v === "update"
+              ? OperationUpdate
+              : v === "delete"
+                ? OperationDelete
+                : v === "query"
+                  ? OperationQuery
+                  : v === "mutation"
+                    ? OperationMutation
+                    : [v]
   );
 };
 

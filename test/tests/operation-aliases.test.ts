@@ -354,5 +354,28 @@ describe("Operation Aliases", () => {
       expect(operations).toContain("findManyUser");
       expect(operations).toContain("findManyCategory");
     });
+    it("should support plural alias for many operations", () => {
+      const { schema } = createApp({
+        searchPath: getSearchPath(import.meta.url),
+        relations,
+        pothosDrizzleGenerator: {
+          models: {
+            posts: {
+              aliases: () => ({
+                singular: "Article",
+                plural: "Articles",
+              }),
+            },
+          },
+        },
+      });
+
+      const operations = getGraphqlOperations(schema);
+
+      expect(operations).toContain("findManyArticles");
+      expect(operations).toContain("createManyArticles");
+      expect(operations).toContain("findFirstArticle");
+      expect(operations).toContain("createOneArticle");
+    });
   });
 });

@@ -3,6 +3,7 @@ import { defineModelObject } from "./definers/model.js";
 import {
   defineCreateOne,
   defineCreateMany,
+  defineUpsertOne,
   defineUpdate,
   defineDelete,
 } from "./definers/mutation.js";
@@ -53,6 +54,9 @@ export class PothosDrizzleGenerator<
     }
     if (operations.includes("createMany")) {
       defineCreateMany(builder, generator, modelName, modelData);
+    }
+    if (operations.includes("upsertOne") && modelData.primaryColumns.length > 0) {
+      defineUpsertOne(builder, generator, modelName, modelData);
     }
     if (operations.includes("update")) {
       defineUpdate(builder, generator, modelName, modelData);

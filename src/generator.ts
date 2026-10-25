@@ -44,6 +44,15 @@ export type DbClient = {
   };
   insert: (table: unknown) => {
     values: (values: unknown) => {
+      onConflictDoUpdate: (config: {
+        target: unknown[];
+        set: Record<string, unknown>;
+      }) => {
+        returning: (returning: unknown) => Promise<Record<string, unknown>[]>;
+        then: (
+          onfulfilled: (value: { rowCount: number } | { rowsAffected: number }) => unknown
+        ) => Promise<unknown>;
+      };
       returning: (returning: unknown) => Promise<Record<string, unknown>[]>;
       then: (
         onfulfilled: (value: { rowCount: number } | { rowsAffected: number }) => unknown
@@ -75,7 +84,7 @@ export type ModelData = {
   table: SchemaEntry;
   operations: (typeof OperationBasic)[number][];
   tableSingularAlias: string;
-  tablePluralAlias: string;
+  tablePluralAlias?: string;
   operationAliases: { [key in (typeof OperationBasic)[number]]?: string };
   filterColumns: string[];
   filterInputColumns: string[];
@@ -89,42 +98,42 @@ export type ModelData = {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => boolean | undefined)
+      }) => boolean | undefined | Promise<boolean | undefined>)
     | undefined;
   limit?:
     | ((params: {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => number | undefined)
+      }) => number | undefined | Promise<number | undefined>)
     | undefined;
   orderBy?:
     | ((params: {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => object | undefined)
+      }) => object | undefined | Promise<object | undefined>)
     | undefined;
   where?:
     | ((params: {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => object | undefined)
+      }) => object | undefined | Promise<object | undefined>)
     | undefined;
   inputData?:
     | ((params: {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => object | undefined)
+      }) => object | undefined | Promise<object | undefined>)
     | undefined;
   depthLimit?:
     | ((params: {
         ctx: object;
         modelName: string;
         operation: (typeof OperationBasic)[number];
-      }) => number | undefined)
+      }) => number | undefined | Promise<number | undefined>)
     | undefined;
 };
 
@@ -174,7 +183,7 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
         
         const operationAliasValue = (aliasesValue?.operations ?? {});
         const tableSingularAlias = aliasesValue?.singular ?? tableInfo.name;
-        const tablePluralAlias = aliasesValue?.plural ?? `${tableInfo.name}s`;
+        const tablePluralAlias = aliasesValue?.plural;
         
         const columnValue = (modelOptions?.fields ?? allOptions?.fields)?.({
           modelName,
@@ -272,34 +281,77 @@ export class DrizzleGenerator<Types extends SchemaTypes> {
 
     const relayFields = Object.entries(relations)
       .filter(([relationName, relation]) => {
-        if (!relation.through) return false;
         if (!filterInputColumns.includes(relationName)) return false;
         if (!tables[relation.targetTableName]) return false;
         return true;
       })
       .map(([relationName, relation]) => {
+        const targetTableData = tables[relation.targetTableName]!;
+        const targetPrimaryCols = targetTableData.primaryColumns;
+        const setCols =
+          targetPrimaryCols.length > 0
+            ? targetPrimaryCols
+            : relation.targetColumns.map((c) => getColumn(c));
+
         const rowInputType = this.getInputType(modelName, `_${relationName}Set`, {
           fields: (t) =>
             Object.fromEntries(
-              relation.targetColumns.map((c) => {
-                const col = getColumn(c);
-                return [
+              setCols.map((col) => [
+                col.name,
+                t.field({
+                  type: this.getDataType(col),
+                  required: true,
+                }),
+              ])
+            ),
+        });
+
+        if (relation.relationType === "one") {
+          const relationInputType = this.getInputType(modelName, `_${relationName}`, {
+            fields: (t) => ({
+              set: t.field({ type: rowInputType }),
+            }),
+          });
+          return [relationName, relationInputType] as const;
+        }
+
+        if (relation.through) {
+          const relationInputType = this.getInputType(modelName, `_${relationName}`, {
+            fields: (t) => ({
+              set: t.field({ type: [rowInputType] }),
+            }),
+          });
+          return [relationName, relationInputType] as const;
+        } else {
+          const targetInputColumns = targetTableData.inputColumns;
+          const targetForeignKeyNames = new Set(
+            relation.targetColumns.map((c) => getColumn(c).name)
+          );
+          const createCols = targetInputColumns.filter(
+            (c) => !targetForeignKeyNames.has(c.name)
+          );
+
+          const rowCreateInputType = this.getInputType(modelName, `_${relationName}Create`, {
+            fields: (t) =>
+              Object.fromEntries(
+                createCols.map((col) => [
                   col.name,
                   t.field({
                     type: this.getDataType(col),
                     required: col.notNull && !col.hasDefault,
                   }),
-                ];
-              })
-            ),
-        });
-        const relationInputType = this.getInputType(modelName, `_${relationName}`, {
-          fields: (t) => ({
-            set: t.field({ type: [rowInputType] }),
-          }),
-        });
+                ])
+              ),
+          });
 
-        return [relationName, relationInputType] as const;
+          const relationInputType = this.getInputType(modelName, `_${relationName}`, {
+            fields: (t) => ({
+              set: t.field({ type: [rowInputType] }),
+              create: t.field({ type: [rowCreateInputType] }),
+            }),
+          });
+          return [relationName, relationInputType] as const;
+        }
       });
     return relayFields;
   }

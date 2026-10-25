@@ -1,3 +1,4 @@
+import { and, eq, inArray, or } from "drizzle-orm";
 import { type ModelData, DrizzleGenerator } from "../generator.js";
 import { createWhereQuery } from "../libs/drizzle.js";
 import { getQueryFields } from "../libs/graphql.js";
@@ -36,9 +37,9 @@ export function defineCreateOne<Types extends SchemaTypes>(
           info: GraphQLResolveInfo
         ) => {
           const client = generator.getClient(ctx);
-          const params = checkPermissionsAndGetParams(modelName, "createOne", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "createOne", ctx, info, modelData);
           const combinedInput = { ...args.input, ...params.input };
-          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns);
+          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns, relations);
           const hasRelationInput = relationFieldsInput.length > 0;
           const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
           if (!isRelay) {
@@ -74,15 +75,103 @@ export function defineCreateOne<Types extends SchemaTypes>(
   });
 }
 
+export function defineUpsertOne<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  generator: DrizzleGenerator<Types>,
+  modelName: string,
+  modelData: ModelData
+) {
+  const { columns, primaryColumns, table, relations, tableSingularAlias, operationAliases } =
+    modelData;
+  const inputCreate = generator.getInputCreate(modelName);
+  const operationName = operationAliases.upsertOne ?? `upsertOne${tableSingularAlias}`;
+
+  builder.mutationType({
+    fields: (t) => ({
+      [operationName]: t.drizzleField({
+        type: modelName,
+        nullable: false,
+        args: { input: t.arg({ type: inputCreate, required: true }) },
+        resolve: async (
+          query: (selection: unknown) => unknown,
+          _parent: unknown,
+          args: { input: object },
+          ctx: object,
+          info: GraphQLResolveInfo
+        ) => {
+          const client = generator.getClient(ctx);
+          const params = await checkPermissionsAndGetParams(
+            modelName,
+            "upsertOne",
+            ctx,
+            info,
+            modelData
+          );
+          const combinedInput = { ...args.input, ...params.input };
+          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns, relations);
+          const hasRelationInput = relationFieldsInput.length > 0;
+          const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
+          if (!isRelay) {
+            query({});
+          }
+
+          const primaryColNames = new Set(primaryColumns.map((c) => c.name));
+          const updateSet: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(dbColumnsInput)) {
+            if (!primaryColNames.has(key)) {
+              updateSet[key] = value;
+            }
+          }
+
+          const onConflictConfig = {
+            target: primaryColumns,
+            set: Object.keys(updateSet).length > 0 ? updateSet : dbColumnsInput,
+          };
+
+          if (!returning) {
+            return client
+              .insert(table as never)
+              .values(dbColumnsInput as never)
+              .onConflictDoUpdate(onConflictConfig)
+              .then(() => ({}));
+          }
+
+          return client.transaction(async (tx) =>
+            tx
+              .insert(table as never)
+              .values(dbColumnsInput as never)
+              .onConflictDoUpdate(onConflictConfig)
+              .returning(returning)
+              .then(async (results) => {
+                if (hasRelationInput) {
+                  await insertRelayValue({
+                    results,
+                    client: tx,
+                    relationInputs: [relationFieldsInput],
+                    relations,
+                  });
+                }
+                return results[0];
+              })
+          );
+        },
+      } as never),
+    }),
+  });
+}
+
 export function defineCreateMany<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   generator: DrizzleGenerator<Types>,
   modelName: string,
   modelData: ModelData
 ) {
-  const { columns, table, relations, tableSingularAlias, operationAliases } = modelData;
+  const { columns, table, relations, tableSingularAlias, tablePluralAlias, operationAliases } =
+    modelData;
   const inputCreate = generator.getInputCreate(modelName);
-  const operationName = operationAliases.createMany ?? `createMany${tableSingularAlias}`;
+  const operationName =
+    operationAliases.createMany ??
+    (tablePluralAlias ? `createMany${tablePluralAlias}` : `createMany${tableSingularAlias}`);
 
   builder.mutationType({
     fields: (t) => ({
@@ -98,7 +187,7 @@ export function defineCreateMany<Types extends SchemaTypes>(
           info: GraphQLResolveInfo
         ) => {
           const client = generator.getClient(ctx);
-          const params = checkPermissionsAndGetParams(
+          const params = await checkPermissionsAndGetParams(
             modelName,
             "createMany",
             ctx,
@@ -110,7 +199,7 @@ export function defineCreateMany<Types extends SchemaTypes>(
             ...v,
             ...params.input,
           }));
-          const separatedInputs = combinedInputs.map((input) => separateInput(input, columns));
+          const separatedInputs = combinedInputs.map((input) => separateInput(input, columns, relations));
           const dbColumnsInputs = separatedInputs.map((i) => i.dbColumnsInput);
           const relationFieldsInputs = separatedInputs.map((i) => i.relationFieldsInput);
 
@@ -177,9 +266,9 @@ export function defineUpdate<Types extends SchemaTypes>(
           info: GraphQLResolveInfo
         ) => {
           const client = generator.getClient(ctx);
-          const params = checkPermissionsAndGetParams(modelName, "update", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "update", ctx, info, modelData);
           const combinedInput = { ...args.input, ...params.input };
-          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns);
+          const { dbColumnsInput, relationFieldsInput } = separateInput(combinedInput, columns, relations);
           const hasRelationInput = relationFieldsInput.length > 0;
           const { returning, isRelay } = getReturning(info, columns, hasRelationInput);
 
@@ -187,7 +276,31 @@ export function defineUpdate<Types extends SchemaTypes>(
             query({});
           }
           const where = combineWhere(args.where, params.where);
-          const whereQuery = createWhereQuery(table, where as never);
+          const whereQuery = createWhereQuery(
+            table,
+            where as never,
+            relations,
+            generator.getRelations()
+          );
+
+          const hasDbColumns = Object.keys(dbColumnsInput).length > 0;
+
+          if (!hasDbColumns) {
+            if (!hasRelationInput) return [];
+            return client.transaction(async (tx) => {
+              const results = (await tx
+                .select(returning ?? (table as unknown as Record<string, unknown>))
+                .from(table as never)
+                .where(whereQuery)) as Record<string, unknown>[];
+              await insertRelayValue({
+                results,
+                client: tx,
+                relationInputs: Array(results.length).fill(relationFieldsInput),
+                relations,
+              });
+              return results;
+            });
+          }
 
           if (!returning) {
             return client
@@ -228,7 +341,8 @@ export function defineDelete<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { columns, table, tableSingularAlias, operationAliases } = modelData;
+  const { columns, primaryColumns, table, relations, tableSingularAlias, operationAliases } =
+    modelData;
   const inputWhere = generator.getInputWhere(modelName);
   const operationName = operationAliases.delete ?? `delete${tableSingularAlias}`;
 
@@ -246,30 +360,51 @@ export function defineDelete<Types extends SchemaTypes>(
           info: GraphQLResolveInfo
         ) => {
           const client = generator.getClient(ctx);
-          const params = checkPermissionsAndGetParams(modelName, "delete", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "delete", ctx, info, modelData);
           const { returning, isRelay } = getReturning(info, columns);
           const whereCondition = combineWhere(args.where, params.where);
 
           if (isRelay) {
-            const result = await generator
-              .getQueryTable(ctx, modelName)
-              .findMany(
+            return client.transaction(async (tx) => {
+              const result = (await tx.query[modelName]?.findMany(
                 replaceColumnValues(
                   tables,
                   modelName,
                   getQueryFields(info),
                   query({ ...args, ...(whereCondition ? { where: whereCondition } : {}) })
                 ) as never
-              );
-            await generator
-              .getClient(ctx)
-              .delete(table as never)
-              .where(createWhereQuery(table, whereCondition as never));
-            return result;
+              )) as Record<string, unknown>[];
+              if (!result || result.length === 0) return [];
+
+              if (primaryColumns.length === 1) {
+                const primaryCol = primaryColumns[0]!;
+                const ids = result.map((r) => r[primaryCol.name]);
+                await tx.delete(table as never).where(inArray(primaryCol as never, ids));
+              } else if (primaryColumns.length > 1) {
+                const orConditions = result.map((r) =>
+                  and(...primaryColumns.map((col) => eq(col as never, r[col.name])))
+                );
+                await tx.delete(table as never).where(or(...orConditions));
+              } else {
+                const whereQuery = createWhereQuery(
+                  table,
+                  whereCondition as never,
+                  relations,
+                  generator.getRelations()
+                );
+                await tx.delete(table as never).where(whereQuery);
+              }
+              return result;
+            });
           }
 
           query({});
-          const whereQuery = createWhereQuery(table, whereCondition as never);
+          const whereQuery = createWhereQuery(
+            table,
+            whereCondition as never,
+            relations,
+            generator.getRelations()
+          );
 
           return returning
             ? client

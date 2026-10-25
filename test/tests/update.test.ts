@@ -382,4 +382,30 @@ describe("Mutation: updatePost (Drizzle v2 Pure Object Syntax)", () => {
     expect(data?.[0].categories).toHaveLength(1);
     expect(data?.[0].categories?.[0].name).toBe(category?.name);
   });
+  it("should update posts filtering by relation in where clause", async () => {
+    const user = await db.query.users.findFirst({
+      where: { email: { isNotNull: true } },
+    });
+    if (!user) throw new Error("User required");
+
+    const userPosts = await db.query.posts.findMany({
+      where: { authorId: { eq: user.id } },
+    });
+    if (userPosts.length === 0) throw new Error("Posts required");
+
+    const updatedTitle = "Title Updated via Author Filter";
+    const result = await client.mutation<{ updatePost: PostResponse[] }>(UPDATE_POST_SIMPLE, {
+      input: { title: updatedTitle },
+      where: {
+        author: { email: { eq: user.email } },
+      },
+    });
+
+    expect(result.error).toBeUndefined();
+    const data = result.data?.updatePost;
+    expect(data?.length).toBe(userPosts.length);
+    data?.forEach((post) => {
+      expect(post.title).toBe(updatedTitle);
+    });
+  });
 });

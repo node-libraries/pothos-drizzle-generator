@@ -74,5 +74,30 @@ describe("libs/drizzle", () => {
       } as never);
       expect(result).toBeUndefined();
     });
+    it("should generate exists subquery for relation conditions when relations are provided", async () => {
+      const { relations } = await import("../db/relations");
+      const result = createWhereQuery(
+        posts,
+        {
+          author: { name: { eq: "John" } },
+        } as never,
+        relations.posts.relations,
+        relations
+      );
+      expect(result).toBeDefined();
+    });
+
+    it("should generate exists subquery for many-to-many through relations", async () => {
+      const { relations } = await import("../db/relations");
+      const result = createWhereQuery(
+        posts,
+        {
+          categories: { name: { eq: "Tech" } },
+        } as never,
+        relations.posts.relations,
+        relations
+      );
+      expect(result).toBeDefined();
+    });
   });
 });

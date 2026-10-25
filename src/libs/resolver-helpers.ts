@@ -12,6 +12,29 @@ type QueryArgs = {
   orderBy?: object[];
 };
 
+function normalizeOperator(key: string, val: unknown): [string, unknown] {
+  switch (key) {
+    case "contains":
+      return ["like", `%${val}%`];
+    case "notContains":
+      return ["notLike", `%${val}%`];
+    case "startsWith":
+      return ["like", `${val}%`];
+    case "endsWith":
+      return ["like", `%${val}`];
+    case "icontains":
+      return ["ilike", `%${val}%`];
+    case "notIcontains":
+      return ["notIlike", `%${val}%`];
+    case "istartsWith":
+      return ["ilike", `${val}%`];
+    case "iendsWith":
+      return ["ilike", `%${val}`];
+    default:
+      return [key, val];
+  }
+}
+
 export function sanitizeWhere(where: unknown): unknown {
   if (where == null) return undefined;
   if (typeof where !== "object") return where;
@@ -20,8 +43,13 @@ export function sanitizeWhere(where: unknown): unknown {
     return arr.length > 0 ? arr : undefined;
   }
   const entries = Object.entries(where)
-    .map(([key, val]) => [key, sanitizeWhere(val)] as const)
-    .filter(([, val]) => val !== undefined);
+    .map(([key, val]) => {
+      const sanitizedVal = sanitizeWhere(val);
+      if (sanitizedVal === undefined) return undefined;
+      const [normalizedKey, normalizedVal] = normalizeOperator(key, sanitizedVal);
+      return [normalizedKey, normalizedVal] as const;
+    })
+    .filter((entry): entry is [string, unknown] => entry !== undefined);
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
@@ -72,7 +100,11 @@ export function prepareQueryOptions(
   return queryOptions;
 }
 
-export function separateInput(input: object, columns: Pick<Column, "name">[]) {
+export function separateInput(
+  input: object,
+  columns: Pick<Column, "name">[],
+  relations?: RelationsRecord
+) {
   const dbColumnsInput: Record<string, unknown> = {};
   const relationFieldsInput: [string, unknown][] = [];
 
@@ -80,7 +112,21 @@ export function separateInput(input: object, columns: Pick<Column, "name">[]) {
     if (columns.some((col) => col.name === key)) {
       dbColumnsInput[key] = value;
     } else {
-      relationFieldsInput.push([key, value]);
+      const relay = relations?.[key];
+      if (relay?.relationType === "one" && value && typeof value === "object" && "set" in value) {
+        const setVal = (value as { set?: Record<string, unknown> }).set;
+        if (setVal) {
+          relay.sourceColumns.forEach((v, index) => {
+            const srcCol = getColumn(v);
+            const targetCol = getColumn(relay.targetColumns[index]);
+            if (setVal[targetCol.name] !== undefined) {
+              dbColumnsInput[srcCol.name] = setVal[targetCol.name];
+            }
+          });
+        }
+      } else {
+        relationFieldsInput.push([key, value]);
+      }
     }
   }
 
@@ -107,37 +153,70 @@ export async function insertRelayValue({
       const itemsToSet = inputPayload.set;
 
       const relay = relations[relationName];
-      if (!itemsToSet || !relay?.through || !relay.throughTable) continue;
+      if (!relay) continue;
 
-      const { throughTable } = relay;
+      if (relay.through && relay.throughTable) {
+        if (!itemsToSet) continue;
+        const { throughTable } = relay;
 
-      const sourceToThroughMap = Object.fromEntries(
-        relay.sourceColumns.map((v, i) => [getColumn(v).name, relay.through!.source[i]!._.key])
-      );
-      const targetToThroughMap = Object.fromEntries(
-        relay.targetColumns.map((v, i) => [getColumn(v).name, relay.through!.target[i]!._.key])
-      );
-
-      const sourceFilters = relay.sourceColumns.map((v) => {
-        const col = getColumn(v);
-        return [sourceToThroughMap[col.name], result[col.name]] as const;
-      });
-      await client
-        .delete(throughTable as never)
-        .where(
-          and(...sourceFilters.map(([key, val]) => eq(relay.throughTable![key as never], val)))
+        const sourceToThroughMap = Object.fromEntries(
+          relay.sourceColumns.map((v, i) => [getColumn(v).name, relay.through!.source[i]!._.key])
+        );
+        const targetToThroughMap = Object.fromEntries(
+          relay.targetColumns.map((v, i) => [getColumn(v).name, relay.through!.target[i]!._.key])
         );
 
-      const insertRows = itemsToSet.map((item) => {
-        const targetValues = Object.entries(item).map(([key, val]) => [
-          targetToThroughMap[key],
-          val,
-        ]);
-        return Object.fromEntries([...targetValues, ...sourceFilters]);
-      });
+        const sourceFilters = relay.sourceColumns.map((v) => {
+          const col = getColumn(v);
+          return [sourceToThroughMap[col.name], result[col.name]] as const;
+        });
+        await client
+          .delete(throughTable as never)
+          .where(
+            and(...sourceFilters.map(([key, val]) => eq(relay.throughTable![key as never], val)))
+          );
 
-      if (insertRows.length > 0) {
-        await client.insert(throughTable as never).values(insertRows);
+        const insertRows = itemsToSet.map((item) => {
+          const targetValues = Object.entries(item).map(([key, val]) => [
+            targetToThroughMap[key],
+            val,
+          ]);
+          return Object.fromEntries([...targetValues, ...sourceFilters]);
+        });
+
+        if (insertRows.length > 0) {
+          await client.insert(throughTable as never).values(insertRows);
+        }
+      } else if (relay.relationType === "many") {
+        const foreignKeyMap = Object.fromEntries(
+          relay.sourceColumns.map((v, i) => [
+            getColumn(relay.targetColumns[i]).name,
+            result[getColumn(v).name],
+          ])
+        );
+
+        const createItems = (value as { create?: Record<string, unknown>[] }).create;
+        if (createItems && Array.isArray(createItems) && createItems.length > 0) {
+          const rowsToInsert = createItems.map((item) => ({
+            ...item,
+            ...foreignKeyMap,
+          }));
+          await client.insert(relay.targetTable as never).values(rowsToInsert as never);
+        }
+
+        if (itemsToSet && Array.isArray(itemsToSet) && itemsToSet.length > 0) {
+          for (const item of itemsToSet) {
+            const targetWhereConditions = Object.entries(item).map(([k, val]) =>
+              eq((relay.targetTable as unknown as Record<string, unknown>)[k] as never, val)
+            );
+            if (targetWhereConditions.length > 0) {
+              await client
+                .update(relay.targetTable as never)
+                .set(foreignKeyMap as never)
+                .where(and(...targetWhereConditions));
+            }
+          }
+        }
       }
     }
   }

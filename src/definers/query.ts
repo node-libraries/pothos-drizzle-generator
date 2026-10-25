@@ -20,10 +20,12 @@ export function defineFindMany<Types extends SchemaTypes>(
   modelData: ModelData,
   tables: Record<string, ModelData>
 ) {
-  const { tableSingularAlias, operationAliases } = modelData;
+  const { tableSingularAlias, tablePluralAlias, operationAliases } = modelData;
   const inputWhere = generator.getInputWhere(modelName);
   const inputOrderBy = generator.getInputOrderBy(modelName);
-  const operationName = operationAliases.findMany ?? `findMany${tableSingularAlias}`;
+  const operationName =
+    operationAliases.findMany ??
+    (tablePluralAlias ? `findMany${tablePluralAlias}` : `findMany${tableSingularAlias}`);
 
   builder.queryType({
     fields: (t) => ({
@@ -43,7 +45,7 @@ export function defineFindMany<Types extends SchemaTypes>(
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
-          const params = checkPermissionsAndGetParams(modelName, "findMany", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "findMany", ctx, info, modelData);
           const queryOptions = prepareQueryOptions(args, params, true);
 
           return generator
@@ -90,7 +92,7 @@ export function defineFindFirst<Types extends SchemaTypes>(
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
-          const params = checkPermissionsAndGetParams(modelName, "findFirst", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "findFirst", ctx, info, modelData);
           const queryOptions = prepareQueryOptions(args, params, false);
 
           return generator
@@ -134,7 +136,7 @@ export function defineCount<Types extends SchemaTypes>(
           ctx: object,
           info: GraphQLResolveInfo
         ) => {
-          const params = checkPermissionsAndGetParams(modelName, "count", ctx, info, modelData);
+          const params = await checkPermissionsAndGetParams(modelName, "count", ctx, info, modelData);
           const where = combineWhere(args.where, params.where);
           const queryOptions: Record<string, unknown> = {
             columns: {},

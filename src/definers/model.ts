@@ -74,7 +74,7 @@ function createRelationField<Types extends SchemaTypes, Shape>(
         where: t.arg({ type: inputWhere }),
         orderBy: t.arg({ type: [inputOrderBy] }),
       },
-      query: (
+      query: async (
         args: {
           where?: object;
           offset?: number;
@@ -83,7 +83,7 @@ function createRelationField<Types extends SchemaTypes, Shape>(
         },
         ctx: object
       ) => {
-        const params = checkPermissionsAndGetParams(
+        const params = await checkPermissionsAndGetParams(
           targetModelName,
           operation,
           ctx,
@@ -143,8 +143,8 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
       nullable: false,
       args: { where: t.arg({ type: inputWhere }) },
       extensions: {
-        pothosDrizzleSelect: (args: { where?: object }, ctx: object) => {
-          const params = checkPermissionsAndGetParams(
+        pothosDrizzleSelect: async (args: { where?: object }, ctx: object) => {
+          const params = await checkPermissionsAndGetParams(
             targetModelName,
             operation,
             ctx,
@@ -157,6 +157,8 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
             extras: {
               [`${relayName}Count`]: (table: Table) => {
                 const client = generator.getClient(ctx);
+                const allRelations = generator.getRelations();
+                const targetRelations = allRelations[targetModelName]?.relations;
                 if (relay.throughTable) {
                   return client
                     .select({ count: sql`count(*)` })
@@ -178,7 +180,12 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
                             table[col.name as keyof typeof table]
                           );
                         }),
-                        createWhereQuery(relay.targetTable, combineWhere(args.where, params.where) as never)
+                        createWhereQuery(
+                          relay.targetTable,
+                          combineWhere(args.where, params.where) as never,
+                          targetRelations,
+                          allRelations
+                        )
                       )
                     );
                 } else {
@@ -195,7 +202,12 @@ function createRelationCountField<Types extends SchemaTypes, Shape>(
                             table[sourceCol.name as keyof typeof table]
                           );
                         }),
-                        createWhereQuery(relay.targetTable, combineWhere(args.where, params.where) as never)
+                        createWhereQuery(
+                          relay.targetTable,
+                          combineWhere(args.where, params.where) as never,
+                          targetRelations,
+                          allRelations
+                        )
                       )
                     );
                 }

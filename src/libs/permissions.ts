@@ -11,27 +11,39 @@ export type ResolvedOperationParams = {
   input?: object;
 };
 
-export function checkPermissionsAndGetParams(
+export async function checkPermissionsAndGetParams(
   modelName: string,
   operation: (typeof OperationBasic)[number],
   ctx: object,
   info: GraphQLResolveInfo | null,
   modelData: ModelData
-): ResolvedOperationParams {
+): Promise<ResolvedOperationParams> {
   const { executable, depthLimit, limit, where, orderBy, inputData } = modelData;
 
-  if (executable?.({ modelName, ctx, operation }) === false) {
+  const isExecutable = executable
+    ? await executable({ modelName, ctx, operation })
+    : true;
+  if (isExecutable === false) {
     throw new Error("No permission");
   }
 
+  const [resolvedDepthLimit, resolvedLimit, resolvedWhere, resolvedOrderBy, resolvedInput] =
+    await Promise.all([
+      depthLimit ? depthLimit({ modelName, ctx, operation }) : undefined,
+      limit ? limit({ modelName, ctx, operation }) : undefined,
+      where ? where({ modelName, ctx, operation }) : undefined,
+      orderBy ? orderBy({ modelName, ctx, operation }) : undefined,
+      isOperation("mutation", operation) && inputData
+        ? inputData({ modelName, ctx, operation })
+        : undefined,
+    ]);
+
   const params: ResolvedOperationParams = {
-    depthLimit: depthLimit?.({ modelName, ctx, operation }),
-    limit: limit?.({ modelName, ctx, operation }),
-    where: where?.({ modelName, ctx, operation }),
-    orderBy: orderBy?.({ modelName, ctx, operation }),
-    input: isOperation("mutation", operation)
-      ? inputData?.({ modelName, ctx, operation })
-      : undefined,
+    depthLimit: resolvedDepthLimit,
+    limit: resolvedLimit,
+    where: resolvedWhere,
+    orderBy: resolvedOrderBy,
+    input: resolvedInput,
   };
 
   if (info && params.depthLimit !== undefined && getQueryDepth(info) > params.depthLimit) {

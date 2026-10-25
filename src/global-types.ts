@@ -142,6 +142,16 @@ declare global {
       notIn?: T[];
       like?: T;
       notLike?: T;
+      ilike?: T;
+      notIlike?: T;
+      contains?: T;
+      notContains?: T;
+      startsWith?: T;
+      endsWith?: T;
+      icontains?: T;
+      notIcontains?: T;
+      istartsWith?: T;
+      iendsWith?: T;
       isNull?: boolean;
       isNotNull?: boolean;
     };
@@ -202,6 +212,8 @@ declare global {
     /**
      * Options for a specific model (table) in the generator.
      */
+    type MaybePromise<T> = T | Promise<T>;
+
     export interface ModelOptions<Types extends SchemaTypes, U extends TableNames<Types>> {
       /**
        * Define which fields to include or exclude for the model.
@@ -234,38 +246,44 @@ declare global {
       /**
        * Limit the depth of nested relations in queries.
        */
-      depthLimit?: <T extends U>(params: OperationParams<Types, T>) => number | undefined;
+      depthLimit?: <T extends U>(
+        params: OperationParams<Types, T>
+      ) => MaybePromise<number | undefined>;
 
       /**
        * Determine if an operation is executable based on the context.
        */
-      executable?: <T extends U>(params: OperationParams<Types, T>) => boolean | undefined;
+      executable?: <T extends U>(
+        params: OperationParams<Types, T>
+      ) => MaybePromise<boolean | undefined>;
 
       /**
        * Set a default limit for the number of records returned.
        */
-      limit?: <T extends U>(params: OperationParams<Types, T>) => number | undefined;
+      limit?: <T extends U>(
+        params: OperationParams<Types, T>
+      ) => MaybePromise<number | undefined>;
 
       /**
        * Define the default sort order for queries.
        */
       orderBy?: <T extends U>(
         params: OperationParams<Types, T>
-      ) => U extends unknown ? OrderByReturn<Columns<Types, U>> : never;
+      ) => MaybePromise<U extends unknown ? OrderByReturn<Columns<Types, U>> : never>;
 
       /**
        * Define default filters for queries.
        */
       where?: <T extends U>(
         params: OperationParams<Types, T>
-      ) => U extends unknown ? WhereReturn<Types, U> : never;
+      ) => MaybePromise<U extends unknown ? WhereReturn<Types, U> : never>;
 
       /**
        * Provide default or transformation logic for input data.
        */
       inputData?: <T extends U>(
         params: OperationParams<Types, T>
-      ) => U extends unknown ? InputDataReturn<Types, U> : never;
+      ) => MaybePromise<U extends unknown ? InputDataReturn<Types, U> : never>;
     }
 
     /**

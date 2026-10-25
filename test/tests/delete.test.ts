@@ -103,7 +103,7 @@ describe("Mutation: deletePost (Drizzle v2 Pure Object Syntax)", () => {
     expect(Array.isArray(data)).toBe(true);
     expect(data).toHaveLength(1);
     expect(filterObject(data[0], IGNORED_KEYS)).toMatchSnapshot();
-    expect(getLogs(db).length).toBe(2);
+    expect(getLogs(db).length).toBe(4);
     
     const dbRecord = await db.query.posts.findFirst({
       where: {
@@ -207,5 +207,43 @@ describe("Mutation: deletePost (Drizzle v2 Pure Object Syntax)", () => {
     });
 
     expect(result.data?.deletePost).toHaveLength(0);
+  });
+  it("should delete posts filtering by relation in where clause", async () => {
+    const { users, posts } = await import("../db/schema");
+    const [tempUser] = await db.insert(users).values({
+      email: "temp-delete-rel@example.com",
+      name: "Temp Delete",
+    }).returning();
+    const [tempPost] = await db.insert(posts).values({
+      title: "Temp Post For Rel Delete",
+      authorId: tempUser.id,
+    }).returning();
+
+    const DELETE_POST_REL = gql`
+      mutation DeletePostRel($where: PostWhere) {
+        deletePost(where: $where) {
+          id
+          title
+        }
+      }
+    `;
+
+    const result = await client.mutation<{ deletePost: { id: string; title: string }[] }>(
+      DELETE_POST_REL,
+      {
+        where: {
+          author: { email: { eq: "temp-delete-rel@example.com" } },
+        },
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.data?.deletePost).toHaveLength(1);
+    expect(result.data?.deletePost[0].id).toBe(tempPost.id);
+
+    const check = await db.query.posts.findFirst({
+      where: { id: { eq: tempPost.id } },
+    });
+    expect(check).toBeUndefined();
   });
 });

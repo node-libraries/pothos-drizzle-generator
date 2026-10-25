@@ -46,9 +46,7 @@ query {
       }
     }
     # Fetch a count of all posts for each user
-    _count {
-      posts # Get count of all posts (published or not)
-    }
+    postsCount # Get count of all posts (published or not)
   }
 }
 ```
@@ -124,6 +122,7 @@ The generator automatically creates a comprehensive set of CRUD operations for e
 - **Mutations**:
   - `createOne[ModelName]`: Creates a single new record. Supports nested creation and connection to related entities.
   - `createMany[ModelName]`: Creates multiple new records in a single operation. Supports nested creation and connection to related entities.
+  - `upsertOne[ModelName]`: Inserts a new record or updates existing on primary key conflict. Supports nested relations.
   - `update[ModelName]`: Updates one or more existing records based on a `where` clause. Supports nested updates.
   - `delete[ModelName]`: Deletes one or more existing records based on a `where` clause.
 
@@ -152,6 +151,14 @@ The `where` input argument, available on all query and update/delete mutation ty
   - `isNotNull`: Field's value is NOT NULL. _Example_: `{ publishedAt: { isNotNull: true } }`
 
 - **String Matching**: For text-based comparisons.
+  - `contains`: Case-sensitive substring matching. _Example_: `{ title: { contains: "GraphQL" } }`
+  - `notContains`: Case-sensitive substring non-matching. _Example_: `{ title: { notContains: "Draft" } }`
+  - `startsWith`: Case-sensitive prefix matching. _Example_: `{ name: { startsWith: "John" } }`
+  - `endsWith`: Case-sensitive suffix matching. _Example_: `{ email: { endsWith: "@gmail.com" } }`
+  - `icontains`: Case-insensitive substring matching. _Example_: `{ title: { icontains: "graphql" } }`
+  - `notIcontains`: Case-insensitive substring non-matching. _Example_: `{ title: { notIcontains: "draft" } }`
+  - `istartsWith`: Case-insensitive prefix matching. _Example_: `{ name: { istartsWith: "john" } }`
+  - `iendsWith`: Case-insensitive suffix matching. _Example_: `{ email: { iendsWith: "@gmail.com" } }`
   - `like`: Case-sensitive pattern matching (uses SQL `LIKE`). _Example_: `{ name: { like: "%john%" } }`
   - `notLike`: Case-sensitive pattern non-matching. _Example_: `{ title: { notLike: "Draft%" } }`
   - `ilike`: Case-insensitive pattern matching (uses SQL `ILIKE`, if supported by DB). _Example_: `{ email: { ilike: "user@example.com" } }`

@@ -66,7 +66,7 @@ pothosDrizzleGenerator: {
 
 ## 4. API Reference
 
-The following callbacks can be used within both `all` and `models`.
+The following callbacks can be used within both `all` and `models`. Callbacks that take `{ ctx, modelName, operation }` (such as `executable`, `where`, `inputData`, `limit`, `orderBy`, and `depthLimit`) fully support **asynchronous operations** and may return a `Promise`.
 
 | Property      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Arguments                       | Expected Return                                           |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------- |
@@ -183,6 +183,7 @@ executable: ({ ctx, operation }) => {
 - `OperationFind`: `findFirst`, `findMany`
 - `OperationQuery`: `findFirst`, `findMany`, `count`
 - `OperationCreate`: `createOne`, `createMany`
+- `OperationUpsert`: `upsertOne`
 - `OperationUpdate`: `update`
 - `OperationDelete`: `delete`
 - `OperationMutation`: All write operations.
